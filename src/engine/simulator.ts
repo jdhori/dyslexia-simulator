@@ -9,6 +9,7 @@
 import { buildGlyphModel, type GlyphCell, type GlyphModel } from "./glyphs";
 import { restoreWord, scrambleWord, swapCells } from "./scramble";
 import { ensurePerceptionStyles } from "./perception";
+import { ensureFragmentStyles } from "./fragment";
 import { isMotionAllowed } from "./motion";
 import type { Settings } from "../state";
 
@@ -64,6 +65,7 @@ export class Simulator {
     options: SimulatorOptions = { srCopy: true },
   ) {
     ensurePerceptionStyles();
+    ensureFragmentStyles();
     this.visualEl = visualEl;
     if (options.srCopy) this.srEl = this.buildSrCopy(visualEl);
     visualEl.classList.add("sim-visual");
