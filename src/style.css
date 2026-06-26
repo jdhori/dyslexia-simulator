@@ -470,6 +470,16 @@ main.wrap {
 .math-surface .katex-display {
   margin: 0;
 }
+.math-note {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+.math-note .menu-path {
+  font-weight: 600;
+  color: var(--ink);
+}
 
 /* --- sections below the fold --- */
 

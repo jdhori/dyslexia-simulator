@@ -103,15 +103,28 @@
           <div class="math-demo">
             <h3 class="math-heading">Math content</h3>
             <p class="section-note">
-              Applied to maths, the scramble garbles the words but leaves the
-              equation itself intact — scrambling symbols would just be nonsense,
-              and a real barrier for STEM readers. Screen readers still receive
-              the correct equation.
+              Applied to math, the scramble garbles the words but leaves the
+              equation itself intact. Perception, Visual wobble, and Blur / focus
+              drift are available for math content too.
             </p>
             <div class="math-surface">
-              <!-- KaTeX is rendered here by src/engine/mathScramble.ts -->
+              <!-- KaTeX is rendered here by src/engine/mathSimulator.ts -->
               <div id="math-root"></div>
             </div>
+            <p class="math-note">
+              <strong>Screen readers</strong> can interact with math equations.
+              NVDA needs the
+              <a href="https://nvda-addons.org/addon.php?id=272" rel="noopener"
+                >MathCAT add-on</a
+              >
+              to read math. If an equation is shown as an SVG image (as MathJax
+              sometimes does), it can be inaccessible: right-click the equation
+              (or press <kbd>Shift</kbd> + <kbd>F10</kbd>) and choose
+              <span class="menu-path"
+                >Math Settings → Math Renderer → HTML-CSS</span
+              >
+              for the best results.
+            </p>
           </div>
         </section>
       </div>
