@@ -1,8 +1,9 @@
-# Dyslexia Simulator
+# Dyslexia, Irlen Syndrome & Reading-Disorder Simulator
 
-An interactive, accessible simulation of how some people describe experiencing
-text — built to create a moment of empathy, not to diagnose. It is a modern
-TypeScript fork of Victor Widell's 2016 demo
+An interactive, accessible simulator of how **dyslexia, Irlen Syndrome, and
+other reading disorders** can make text feel — built to create a moment of
+empathy, not to diagnose. It is a modern TypeScript fork of Victor Widell's 2016
+demo
 [“Dsxyliea”](https://geon.github.io/programming/2016/03/03/dsxyliea), expanded
 with several new effects, a math-content demo, a day/night theme, and
 accessibility safeguards throughout.
