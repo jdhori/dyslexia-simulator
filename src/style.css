@@ -663,6 +663,18 @@ main.wrap {
   }
 }
 
+/* Letter fragments — an approximation of Daniel Britton's "Dyslexia" typeface:
+   part of every letter is masked away over a Helvetica-like sans base, so a word
+   has to be decoded slowly from what's left. Applied per glyph, and static — it
+   works under reduced motion too. (Not his font; see the credits.) */
+.sim-visual.m-fragment {
+  font-family: var(--font-sans);
+}
+.sim-visual.m-fragment .glyph {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0 44%, #000 44%);
+  mask-image: linear-gradient(to bottom, transparent 0 44%, #000 44%);
+}
+
 /* Line switching ("Jumping letters") swaps letter *content* with the word
    directly above or below; it is driven in src/engine/simulator.ts, not CSS,
    so that it only ever switches with a real neighbour (never empty space).

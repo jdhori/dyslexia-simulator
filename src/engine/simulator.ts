@@ -133,6 +133,7 @@ export class Simulator {
     v.classList.toggle("m-blur", active && s.blur);
     v.classList.toggle("m-crowd", active && s.crowding);
     v.classList.toggle("m-wobble", active && s.wobble && motion);
+    v.classList.toggle("m-fragment", active && s.fragment);
   }
 
   private tick(): void {

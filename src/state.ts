@@ -16,6 +16,8 @@ export interface Settings {
   readonly wobble: boolean;
   /** Letters leap to the line above or below (requires motion). */
   readonly linejump: boolean;
+  /** Remove part of each letter, after Daniel Britton's Dyslexia typeface. */
+  readonly fragment: boolean;
   /** Soft focus that slips in and out. */
   readonly blur: boolean;
   /** Tighten spacing until words touch. */
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   perception: false,
   wobble: false,
   linejump: false,
+  fragment: false,
   blur: false,
   crowding: false,
   speedMs: 500,

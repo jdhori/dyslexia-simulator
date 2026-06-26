@@ -24,6 +24,7 @@ Each effect is a toggle, and they combine. They’re grouped in the control pane
 - **…include first & last** — opens the whole word to a full anagram.
 - **Letter flips (b d p q)** — the classic confusable pairs are mirrored.
 - **Jumping letters** — letters swap places with the word directly above or below; nothing happens where there’s no neighbour (top/bottom of the text or across a paragraph gap).
+- **Letter fragments** — removes part of each letter so words must be decoded slowly; a CSS approximation of Daniel Britton’s *Dyslexia* typeface (not his actual font).
 
 **Other reading disorders**
 - **Perception alphabet** — a per-letter distortion (mirror, tilt, baseline drift, fade) approximating how some readers say they *see* letterforms. The opposite of assistive fonts like Dyslexie/OpenDyslexic.

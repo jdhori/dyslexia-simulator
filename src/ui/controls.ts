@@ -10,9 +10,10 @@ type ModeKey = Extract<
   | "scramble"
   | "scrambleEnds"
   | "flip"
+  | "linejump"
+  | "fragment"
   | "perception"
   | "wobble"
-  | "linejump"
   | "blur"
   | "crowding"
 >;
@@ -44,6 +45,11 @@ const DYSLEXIA_MODES: ModeDef[] = [
     key: "linejump",
     label: "Jumping letters",
     hint: "Letters switch places with the word directly above or below (never with empty space). Needs motion.",
+  },
+  {
+    key: "fragment",
+    label: "Letter fragments",
+    hint: "Removes part of each letter, so words must be decoded slowly — an approximation of Daniel Britton's *Dyslexia* typeface.",
   },
 ];
 
