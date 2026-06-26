@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dyslexia Simulator — how reading can feel</title>
+    <meta
+      name="description"
+      content="An interactive, accessible simulation of how some people with dyslexia describe experiencing text. A modern fork of Victor Widell's 2016 demo, with extra perception modes."
+    />
+    <meta name="color-scheme" content="light dark" />
+  </head>
+  <body>
+    <a class="skip-link" href="#reading">Skip to the reading demo</a>
+
+    <!-- Fixed day/night toggle (top-right); built by src/ui/themeToggle.ts -->
+    <div id="theme-root"></div>
+
+    <header class="site-header">
+      <div class="wrap">
+        <div class="masthead-text">
+          <p class="eyebrow">An empathy &amp; awareness tool</p>
+          <h1 class="title">This is how reading <em>can</em> feel.</h1>
+          <p class="lede">
+            Type that refuses to sit still. This page recreates a few of the
+            experiences people have described when reading is hard — so you can
+            feel the effort for a moment. Use the controls to change what
+            happens.
+          </p>
+        </div>
+        <p class="disclaimer" role="note">
+          <strong>Please read this first.</strong> Dyslexia is neurological and
+          differs from person to person. It is <em>not</em> literally
+          &ldquo;moving letters&rdquo; for everyone, and this is not a diagnostic
+          tool or a medical model. Several of these effects also overlap with
+          <strong>Irlen Syndrome</strong> (also called scotopic sensitivity or
+          visual stress) — a perceptual processing difference, distinct from
+          dyslexia, in which text can appear to blur, swirl, double, or move, and
+          which is often eased by colored overlays or tinted lenses. It is a
+          simulation of <em>some</em> commonly described visual experiences,
+          meant to build empathy — nothing more.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="layout">
+        <!-- Control panel is built by src/ui/controls.ts -->
+        <div id="controls-root"></div>
+
+        <section id="reading" class="reading" aria-labelledby="reading-heading">
+          <h2 id="reading-heading" class="section-heading">The reading demo</h2>
+          <p class="section-note">
+            The text below is real and unchanged for screen readers. The effect
+            you see is purely visual. Press
+            <kbd>Esc</kbd> at any time, or use the reveal control, to see the
+            original instantly.
+          </p>
+
+          <div class="reading-surface">
+            <!--
+              data-sim marks a region the simulator drives. The markup inside is
+              the real, original content; the engine snapshots it and applies a
+              visual-only effect on top, leaving the accessibility tree intact.
+            -->
+            <article class="prose" data-sim="demo">
+              <p>
+                A friend who has dyslexia described to me how she experiences
+                reading. She can read, but it takes a lot of concentration, and
+                the letters seem to jump around.
+              </p>
+              <p>
+                I remembered reading about typoglycemia — the effect where you
+                can still read a word even when its inner letters are scrambled,
+                as long as the first and last letters stay in place. Wouldn&rsquo;t
+                it be possible to do that interactively, on a website, with
+                JavaScript? Sure it would.
+              </p>
+              <p>
+                Dyslexia is characterized by difficulty with learning to read
+                fluently and with accurate comprehension despite normal
+                intelligence. This includes difficulty with phonological
+                awareness, phonological decoding, processing speed, orthographic
+                coding, auditory short-term memory, language skills and verbal
+                comprehension, and rapid naming.
+              </p>
+              <p>
+                Developmental reading disorder is the most common learning
+                disability. Dyslexia is the most recognized of reading disorders,
+                however not all reading disorders are linked to dyslexia.
+              </p>
+              <p>
+                Some see dyslexia as distinct from reading difficulties resulting
+                from other causes, such as a non-neurological deficiency with
+                vision or hearing, or from poor or inadequate reading
+                instruction. It is considered a receptive language-based learning
+                disability, and it can also affect a person&rsquo;s expressive
+                language skills.
+              </p>
+            </article>
+          </div>
+
+          <div class="math-demo">
+            <h3 class="math-heading">Math content</h3>
+            <p class="section-note">
+              Applied to maths, the scramble garbles the words but leaves the
+              equation itself intact — scrambling symbols would just be nonsense,
+              and a real barrier for STEM readers. Screen readers still receive
+              the correct equation.
+            </p>
+            <div class="math-surface">
+              <!-- KaTeX is rendered here by src/engine/mathScramble.ts -->
+              <div id="math-root"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="duo">
+        <!-- Bookmarklet generator is built by src/ui/bookmarklet.ts -->
+        <section id="bookmarklet" aria-labelledby="bookmarklet-heading">
+        <h2 id="bookmarklet-heading" class="section-heading">
+          Take it to any page
+        </h2>
+        <p class="section-note">
+          Victor Widell, who built the original demo, suggested turning it into a
+          bookmarklet but never did — so here it is. It applies only the original
+          <strong>Letter scramble</strong> (typoglycemia), not the other effects
+          on this page, which can&rsquo;t be applied safely to arbitrary sites.
+        </p>
+        <div id="bookmarklet-root"></div>
+      </section>
+
+      <section id="about" aria-labelledby="about-heading" class="about">
+        <h2 id="about-heading" class="section-heading">About the modes</h2>
+        <dl class="mode-glossary">
+          <div>
+            <dt>Letter scramble (typoglycemia)</dt>
+            <dd>
+              The inner letters of a word are shuffled while the first and last
+              letters stay put. This is the original 2016 effect. You can also
+              include the first and last letters for a harder, full anagram.
+            </dd>
+          </div>
+          <div>
+            <dt>Letter flips (b / d / p / q)</dt>
+            <dd>
+              The classic confusable pairs are mirrored or flipped, the reversal
+              errors many beginning and dyslexic readers report.
+            </dd>
+          </div>
+          <div>
+            <dt>Jumping letters</dt>
+            <dd>
+              Letters switch places with the word directly above or below them,
+              so the eye keeps losing its place between rows. Letters with
+              nothing above or below — at the start or end of the text, or beside
+              a paragraph gap — stay put, because there is nothing to switch
+              with.
+            </dd>
+          </div>
+          <div>
+            <dt>Perception alphabet</dt>
+            <dd>
+              A per-letter distortion — mirroring, rotation, baseline drift, and
+              fading — that approximates how some dyslexic readers say they
+              <em>see</em> letterforms. This is the opposite of assistive fonts
+              like Dyslexie or OpenDyslexic: instead of making letters clearer,
+              it recreates the instability some people describe.
+            </dd>
+          </div>
+          <div>
+            <dt>Visual wobble</dt>
+            <dd>Letters drift and tremble, so the line never holds still.</dd>
+          </div>
+          <div>
+            <dt>Blur / focus drift</dt>
+            <dd>Focus slips in and out, the way tired eyes lose a sharp edge.</dd>
+          </div>
+          <div>
+            <dt>Crowding</dt>
+            <dd>
+              Spacing tightens until letters and words press together and the
+              white &ldquo;rivers&rdquo; between words vanish.
+            </dd>
+          </div>
+        </dl>
+        </section>
+      </div>
+
+      <section id="credits" aria-labelledby="credits-heading">
+        <h2 id="credits-heading" class="section-heading">Credits &amp; sources</h2>
+        <ul class="credits">
+          <li>
+            Original concept and letter-scramble demo:
+            <a href="https://geon.github.io/programming/2016/03/03/dsxyliea" rel="noopener"
+              >Victor Widell, &ldquo;Dsxyliea&rdquo; (2016)</a
+            >. This project is a fork that ports his idea to TypeScript and adds
+            new modes.
+          </li>
+          <li>
+            Background:
+            <a href="https://en.wikipedia.org/wiki/Dyslexia" rel="noopener"
+              >Dyslexia</a
+            >
+            and
+            <a href="https://en.wikipedia.org/wiki/Typoglycemia" rel="noopener"
+              >Typoglycemia</a
+            >
+            on Wikipedia.
+          </li>
+          <li>
+            <a href="https://irlen.com/what-is-irlen-syndrome/" rel="noopener"
+              >What is Irlen Syndrome?</a
+            >
+            — scotopic sensitivity / visual stress, the perceptual condition some
+            of these effects evoke.
+          </li>
+          <li>
+            Related reading: Daniel Britton&rsquo;s
+            <em>Dyslexia</em> typeface, which simulates the effort of decoding by
+            removing parts of each letter — a different but complementary idea.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          A fork of Victor Widell&rsquo;s dyslexia simulation, rebuilt with
+          accessibility safeguards. The simulated text is always available to
+          assistive technology in its original form.
+        </p>
+      </div>
+    </footer>
+
+    <noscript>
+      <p class="noscript-note wrap">
+        This is an interactive demo that needs JavaScript to run. The text above
+        is fully readable without it.
+      </p>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

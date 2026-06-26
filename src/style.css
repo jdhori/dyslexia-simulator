@@ -1,0 +1,661 @@
+/* ============================================================
+   Dyslexia Simulator — styles
+   Editorial / warm-paper direction. Serif reading column, sans UI.
+   Light + dark via prefers-color-scheme. Targets WCAG 2.1 AA contrast.
+   ============================================================ */
+
+:root {
+  --paper: #f5f1e8;
+  --surface: #fbf8f1;
+  --surface-sunken: #efe9da;
+  --ink: #211c16;
+  --ink-soft: #5c5346;
+  --rule: #ddd5c4;
+  --accent: #b4451f;
+  --accent-ink: #8f3414;
+  --accent-contrast: #ffffff;
+  --focus: #1a55c0;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", Georgia, serif;
+
+  --measure: 64ch;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(33, 28, 22, 0.06), 0 12px 32px rgba(33, 28, 22, 0.09);
+
+  color-scheme: light dark;
+}
+
+/* Dark tokens apply when the toggle forces dark... */
+:root[data-theme="dark"] {
+  --paper: #17140f;
+  --surface: #211c16;
+  --surface-sunken: #100d09;
+  --ink: #ece6d8;
+  --ink-soft: #b3a994;
+  --rule: #38322a;
+  --accent: #e6783f;
+  --accent-ink: #f29b6c;
+  --accent-contrast: #17140f;
+  --focus: #8fb6ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+
+/* ...or when the OS prefers dark and the user hasn't forced a theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --paper: #17140f;
+    --surface: #211c16;
+    --surface-sunken: #100d09;
+    --ink: #ece6d8;
+    --ink-soft: #b3a994;
+    --rule: #38322a;
+    --accent: #e6783f;
+    --accent-ink: #f29b6c;
+    --accent-contrast: #17140f;
+    --focus: #8fb6ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 36px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  accent-color: var(--accent);
+}
+
+.wrap {
+  width: min(100% - 2.5rem, 90rem);
+  margin-inline: auto;
+}
+
+/* --- a11y utilities --- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 10;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+:where(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a {
+  color: var(--accent-ink);
+  text-underline-offset: 0.15em;
+}
+
+kbd {
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+}
+
+/* --- header --- */
+
+.site-header {
+  border-bottom: 1px solid var(--rule);
+  /* Min top padding clears the fixed top-right theme toggle on narrow screens. */
+  padding-block: clamp(3.25rem, 1rem + 5vw, 4.5rem) 2rem;
+  background: linear-gradient(180deg, var(--surface), var(--paper));
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: clamp(2.4rem, 1rem + 6vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+.title em {
+  font-style: italic;
+  color: var(--accent-ink);
+}
+
+.lede {
+  margin: 1.25rem 0 0;
+  font-size: clamp(1.1rem, 1rem + 0.4vw, 1.35rem);
+  color: var(--ink-soft);
+}
+
+.disclaimer {
+  margin-top: 1.75rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+/* --- main layout --- */
+
+main.wrap {
+  padding-block: clamp(2rem, 1rem + 4vw, 4rem);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 30fr 70fr; /* controls 30% / reading + math 70% */
+  gap: clamp(1.5rem, 1rem + 2vw, 3rem);
+  align-items: start;
+}
+@media (max-width: 60rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- control panel (sticky sidebar; header + groups stack vertically) --- */
+
+.controls {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+@media (max-width: 60rem) {
+  .controls {
+    position: static;
+  }
+}
+
+.control-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.control-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.controls-title {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+
+.control-group {
+  margin: 0;
+  padding: 0.9rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.control-group legend {
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.1rem 0.55rem;
+  align-items: center;
+}
+.check input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.check label {
+  font-size: 0.98rem;
+  cursor: pointer;
+}
+.check-hint {
+  grid-column: 2;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.control-master label {
+  font-weight: 600;
+}
+
+.control-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+}
+.slider label {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.slider input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+/* Tokened track + 24px thumb, so non-text contrast (SC 1.4.11) and target size
+   are under our control rather than the user agent's. */
+.slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--rule);
+}
+.slider input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--rule);
+}
+.slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: calc((6px - 1.5rem) / 2);
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.slider input[type="range"]::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+}
+.slider output {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- buttons --- */
+
+.btn,
+.reveal-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: transform 80ms ease, filter 120ms ease, background 120ms ease;
+}
+.btn:hover,
+.reveal-btn:hover {
+  filter: brightness(1.06);
+}
+.btn:active,
+.reveal-btn:active {
+  transform: translateY(1px);
+}
+
+.reveal-btn {
+  width: 100%;
+  text-align: center;
+}
+.reveal-btn[aria-pressed="true"] {
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* Fixed day/night toggle, pinned to the top-right corner of the page. */
+.theme-toggle {
+  position: fixed;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+.theme-toggle__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* --- reading demo --- */
+
+.section-heading {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 1rem + 1.6vw, 2.1rem);
+  line-height: 1.15;
+  margin: 0 0 0.4rem;
+}
+#reading .section-heading {
+  margin-top: 0;
+}
+
+.section-note {
+  margin: 0 0 1.25rem;
+  color: var(--ink-soft);
+}
+
+.reading-surface {
+  padding: clamp(1.25rem, 1rem + 2vw, 2.75rem);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.prose {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 1rem + 0.45vw, 1.3rem);
+  line-height: 1.75;
+}
+.prose p {
+  margin: 0 0 1.1em;
+}
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- math content demo --- */
+
+.math-demo {
+  margin-top: clamp(1.75rem, 1rem + 2.5vw, 3rem);
+}
+.math-heading {
+  font-family: var(--font-serif);
+  font-size: clamp(1.2rem, 1rem + 1vw, 1.6rem);
+  line-height: 1.2;
+  margin: 0 0 0.4rem;
+}
+.math-surface {
+  margin-top: 1rem;
+  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto; /* display math can be wider than the column */
+}
+.math-surface .katex {
+  color: var(--ink);
+  font-size: 1.15em;
+}
+.math-surface .katex-display {
+  margin: 0;
+}
+
+/* --- sections below the fold --- */
+
+.duo,
+#credits {
+  margin-top: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+  padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
+  border-top: 1px solid var(--rule);
+}
+
+/* "Take it to any page" and "About the modes" sit side by side, 50/50. */
+.duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.5rem, 1rem + 2vw, 3rem);
+  align-items: start;
+}
+@media (max-width: 52rem) {
+  .duo {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- bookmarklet --- */
+
+.bookmarklet-link {
+  display: inline-block;
+  padding: 0.7rem 1.2rem;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  border-radius: var(--radius);
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  cursor: grab;
+}
+.bookmarklet-link:active {
+  cursor: grabbing;
+}
+
+.bookmarklet-code {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 60ch;
+}
+.bookmarklet-code label {
+  font-weight: 600;
+}
+.bookmarklet-code textarea {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  resize: vertical;
+  word-break: break-all;
+}
+.bookmarklet-code .btn {
+  align-self: flex-start;
+}
+
+/* --- about / glossary --- */
+
+.mode-glossary {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem 2rem;
+}
+.mode-glossary dt {
+  font-weight: 700;
+}
+.mode-glossary dd {
+  margin: 0.2rem 0 0;
+  color: var(--ink-soft);
+}
+.credits {
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+.credits li {
+  margin-bottom: 0.6rem;
+}
+
+/* --- footer --- */
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding-block: 2rem;
+  margin-top: 3rem;
+}
+.site-footer p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.noscript-note {
+  margin-top: 1rem;
+  color: var(--accent-ink);
+}
+
+/* ============================================================
+   The effect itself
+   ============================================================ */
+
+.glyph {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+/* Keep a word's letters together so a line breaks between words, never between
+   letters. A word too long for the line still breaks as a last resort (mobile). */
+.word {
+  display: inline-block;
+}
+
+/* Letter flips: the classic confusable pairs are mirrored. */
+.sim-visual.m-flip .glyph[data-char="b"],
+.sim-visual.m-flip .glyph[data-char="d"],
+.sim-visual.m-flip .glyph[data-char="p"],
+.sim-visual.m-flip .glyph[data-char="q"] {
+  scale: -1 1;
+}
+
+/* Crowding: spacing collapses so words press together. Intensity controls how
+   tightly via --sim-amp. */
+.sim-visual.m-crowd {
+  letter-spacing: calc(-0.06em * var(--sim-amp, 1));
+  word-spacing: calc(-0.18em * var(--sim-amp, 1));
+}
+
+/* Blur / focus drift. Clearly soft by default (this is also the reduced-motion
+   appearance); when motion is allowed the focus drifts in and out but never
+   snaps fully sharp. Applied to the container — one element, so the filters
+   never stack into an over-blur. */
+.sim-visual.m-blur {
+  filter: blur(calc(1.4px * var(--sim-amp, 1)));
+}
+.motion-ok .sim-visual.m-blur {
+  animation: dsx-focus var(--sim-period, 2s) ease-in-out infinite alternate;
+}
+@keyframes dsx-focus {
+  from {
+    filter: blur(calc(0.8px * var(--sim-amp, 1)));
+  }
+  to {
+    filter: blur(calc(2.6px * var(--sim-amp, 1)));
+  }
+}
+
+/* Wobble: per-letter tremble. Uses `transform`, leaving the perception
+   alphabet's individual `rotate`/`scale`/`translate` free to compose with it.
+   Gated on `.motion-ok` so reduced-motion users never see it. (No `will-change`:
+   it would promote hundreds of glyph spans to their own layers; the `transform`
+   animation is compositor-threaded on its own.) */
+.motion-ok .sim-visual.m-wobble .glyph {
+  animation: dsx-wobble var(--sim-period, 1.6s) var(--gd, 0s) infinite alternate
+    ease-in-out;
+}
+@keyframes dsx-wobble {
+  from {
+    transform: translate(
+        calc(-0.4px * var(--sim-amp, 1)),
+        calc(-0.7px * var(--sim-amp, 1))
+      )
+      rotate(calc(-2.6deg * var(--sim-amp, 1)));
+  }
+  to {
+    transform: translate(
+        calc(0.4px * var(--sim-amp, 1)),
+        calc(0.7px * var(--sim-amp, 1))
+      )
+      rotate(calc(2.6deg * var(--sim-amp, 1)));
+  }
+}
+
+/* Line switching ("Jumping letters") swaps letter *content* with the word
+   directly above or below; it is driven in src/engine/simulator.ts, not CSS,
+   so that it only ever switches with a real neighbour (never empty space).
+
+   The perception-alphabet per-letter rules are also generated at runtime, in
+   src/engine/perception.ts, and injected as a stylesheet. */

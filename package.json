@@ -1,0 +1,29 @@
+{
+  "name": "dyslexia-simulator",
+  "private": true,
+  "version": "0.1.0",
+  "description": "An interactive, accessible simulation of how some people with dyslexia describe experiencing text. A modern TypeScript fork of Victor Widell's 2016 demo.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "dyslexia",
+    "accessibility",
+    "a11y",
+    "typoglycemia",
+    "simulation",
+    "empathy"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "@types/katex": "^0.16.8",
+    "katex": "^0.17.0"
+  }
+}
