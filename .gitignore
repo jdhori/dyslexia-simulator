@@ -4,3 +4,8 @@ dist-ssr
 *.local
 .DS_Store
 *.log
+
+# AI-assistant / local tooling config — never publish
+.claude/
+CLAUDE.md
+.mcp.json
