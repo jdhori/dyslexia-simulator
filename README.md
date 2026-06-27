@@ -24,16 +24,19 @@ Each effect is a toggle, and they combine. They’re grouped in the control pane
 - **…include first & last** — opens the whole word to a full anagram.
 - **Letter flips (b d p q)** — the classic confusable pairs are mirrored.
 - **Jumping letters** — letters swap places with the word directly above or below; nothing happens where there’s no neighbour (top/bottom of the text or across a paragraph gap).
-- **Letter fragments** — removes part of each letter so words must be decoded slowly; a CSS approximation of Daniel Britton’s *Dyslexia* typeface (not his actual font).
+- **Letter fragments** — removes part of each letter so words must be decoded slowly, with an adjustable **removal size**; a CSS approximation of Daniel Britton’s *Dyslexia* typeface (not his actual font).
 
 **Other reading disorders**
-- **Perception alphabet** — a per-letter distortion (mirror, tilt, baseline drift, fade) approximating how some readers say they *see* letterforms. The opposite of assistive fonts like Dyslexie/OpenDyslexic.
-- **Visual wobble** — letters tremble and never hold still.
+- **Perception alphabet** — a per-letter distortion (mirror, tilt, baseline drift, fade) approximating how some people with learning or developmental disabilities describe *seeing* characters.
+- **Visual wobble** — letters tremble and never hold still, a reading disorder some people experience; its Speed and Intensity sliders show the range of movement different readers describe.
 - **Blur / focus drift** — focus slips softly in and out.
 - **Crowding** — spacing tightens until words press together.
 
-Two sliders — **Speed** and **Intensity** — drive every time-based and
-strength-based effect, not just the scramble.
+Every effect carries **its own controls**, shown beneath it while it’s on: a
+**Speed** for the time-based effects (scramble, jumping letters, wobble, blur)
+and a strength slider for the rest — **Intensity**, or **Removal size** for
+letter fragments and **Tightness** for crowding. So you can tune one effect to
+one reader’s experience without disturbing the others.
 
 ## Math content
 

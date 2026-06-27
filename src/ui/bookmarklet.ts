@@ -81,9 +81,10 @@ function flash(button: HTMLButtonElement, message: string): void {
 
 function buildPayload(settings: Settings): string {
   // Always the letter scramble — this bookmarklet is the original demo and does
-  // not follow the page's other effects. Speed and Intensity still tune it.
-  const intensity = settings.intensity.toFixed(2);
-  const speed = String(settings.speedMs);
+  // not follow the page's other effects. The scramble's own Speed and Intensity
+  // still tune it.
+  const intensity = settings.scrambleIntensity.toFixed(2);
+  const speed = String(settings.scrambleSpeed);
 
   // Hand-compacted IIFE. A second click clears the interval AND restores every
   // text node's original value, so the same bookmarklet cleanly toggles on and

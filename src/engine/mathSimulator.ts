@@ -14,6 +14,7 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { isMotionAllowed } from "./motion";
+import { amp, periodMs } from "./cssParams";
 import type { Settings } from "../state";
 
 interface Word {
@@ -34,9 +35,6 @@ interface MathGlyph {
 
 const STATIC_PASSES = 6;
 const WORD_RE = /\p{L}{4,}/gu;
-const PERIOD_FACTOR = 4;
-const AMP_FLOOR = 0.5;
-const AMP_SCALE = 2.5;
 
 // "Visual" math structures — division (fractions), sums and other large
 // operators, square roots, and stretchy delimiters. Their glyphs never move.
@@ -66,12 +64,14 @@ export class MathSimulator {
     const motion = isMotionAllowed();
     const active = settings.enabled && !settings.reveal;
 
-    const amp = AMP_FLOOR + settings.intensity * AMP_SCALE;
-    this.host.style.setProperty(
-      "--sim-period",
-      `${settings.speedMs * PERIOD_FACTOR}ms`,
-    );
-    this.host.style.setProperty("--sim-amp", amp.toFixed(3));
+    // Each visual mode reads its own strength/tempo (math has no crowding,
+    // fragment or line-jump, so those vars are not set here).
+    const style = this.host.style;
+    style.setProperty("--perception-amp", amp(settings.perceptionIntensity));
+    style.setProperty("--wobble-amp", amp(settings.wobbleIntensity));
+    style.setProperty("--wobble-period", periodMs(settings.wobbleSpeed));
+    style.setProperty("--blur-amp", amp(settings.blurIntensity));
+    style.setProperty("--blur-period", periodMs(settings.blurSpeed));
 
     // Perception / flip / blur / wobble apply to math — but never crowding or
     // line-jumping.
@@ -87,7 +87,7 @@ export class MathSimulator {
       return;
     }
     if (motion) {
-      this.timer = window.setInterval(() => this.tick(), settings.speedMs);
+      this.timer = window.setInterval(() => this.tick(), settings.scrambleSpeed);
     } else {
       this.restore();
       this.staticScramble();
@@ -149,11 +149,13 @@ export class MathSimulator {
     for (const span of this.textSpans) {
       const chars = (span.el.textContent ?? span.original).split("");
       for (const word of span.words) {
-        if (Math.random() < s.intensity) swapInner(chars, word, s.scrambleEnds);
+        if (Math.random() < s.scrambleIntensity) {
+          swapInner(chars, word, s.scrambleEnds);
+        }
       }
       span.el.textContent = chars.join("");
     }
-    this.mixMath(s.intensity);
+    this.mixMath(s.scrambleIntensity);
   }
 
   private staticScramble(): void {

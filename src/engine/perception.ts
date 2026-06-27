@@ -1,9 +1,9 @@
-// The "dyslexic perception alphabet".
+// The "perception alphabet".
 //
-// This is the inverse of an assistive typeface like Dyslexie or OpenDyslexic:
-// instead of making letters easier to tell apart, it recreates the unstable
-// letterforms some dyslexic readers describe — letters that mirror, tilt off
-// the line, drift above or below the baseline, or fade.
+// A per-letter distortion that recreates how some people with learning or
+// developmental disabilities describe seeing characters: letterforms that
+// mirror, tilt off the line, drift above or below the baseline, or fade,
+// rather than sitting still.
 //
 // It is a deliberately *uneven* alphabet. A few letters reverse strongly (the
 // famous reversals), most only tilt or drift, and some are left almost alone —
@@ -80,7 +80,11 @@ function buildCss(): string {
 
 function toDeclarations(transform: GlyphTransform): string {
   const declarations: string[] = [];
-  if (transform.rotate) declarations.push(`rotate: ${transform.rotate}deg;`);
+  // Tilt and baseline drift scale with the Intensity slider (--perception-amp);
+  // the mirror/flip itself is binary, and the fade is left as authored.
+  if (transform.rotate) {
+    declarations.push(`rotate: calc(${transform.rotate}deg * var(--perception-amp, 1));`);
+  }
 
   const scaleX = transform.mirror ? -1 : 1;
   const scaleY = transform.flip ? -1 : 1;
@@ -88,7 +92,9 @@ function toDeclarations(transform: GlyphTransform): string {
     declarations.push(`scale: ${scaleX} ${scaleY};`);
   }
 
-  if (transform.dy) declarations.push(`translate: 0 ${transform.dy}em;`);
+  if (transform.dy) {
+    declarations.push(`translate: 0 calc(${transform.dy}em * var(--perception-amp, 1));`);
+  }
   if (transform.fade !== undefined) declarations.push(`opacity: ${transform.fade};`);
 
   return declarations.join(" ");

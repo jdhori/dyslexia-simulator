@@ -52,24 +52,45 @@ export function ensureFragmentStyles(): void {
   document.head.appendChild(style);
 }
 
-// Vertical cuts use a slightly larger fraction because the glyph box includes
-// line-height leading; horizontal cuts act on the tighter letter width.
+// Every cut size is multiplied by --fragment-amp (the "Removal size" slider), so
+// the same per-letter pattern can take away a little or almost all of the glyph.
+// Edge cuts grow from one side; the two centred cuts grow symmetrically about
+// the letter's middle. Vertical cuts use a slightly larger base fraction because
+// the glyph box includes line-height leading; horizontal cuts act on the tighter
+// letter width.
+
+// `n%` of the box, scaled by the removal-size variable.
+function s(base: number): string {
+  return `calc(${base}% * var(--fragment-amp, 1))`;
+}
+// `100% - n%`, scaled — the far edge of a side/edge cut.
+function rest(base: number): string {
+  return `calc(100% - ${base}% * var(--fragment-amp, 1))`;
+}
+// A band centred at `center%`, half-width `half%`, scaled — for the middle cuts.
+function lo(center: number, half: number): string {
+  return `calc(${center}% - ${half}% * var(--fragment-amp, 1))`;
+}
+function hi(center: number, half: number): string {
+  return `calc(${center}% + ${half}% * var(--fragment-amp, 1))`;
+}
+
 function maskFor(cut: Cut): string {
   switch (cut) {
     case "top":
-      return "linear-gradient(to bottom, transparent 0 44%, #000 44%)";
+      return `linear-gradient(to bottom, transparent 0 ${s(44)}, #000 ${s(44)})`;
     case "bottom":
-      return "linear-gradient(to top, transparent 0 40%, #000 40%)";
+      return `linear-gradient(to top, transparent 0 ${s(40)}, #000 ${s(40)})`;
     case "left":
-      return "linear-gradient(to right, transparent 0 36%, #000 36%)";
+      return `linear-gradient(to right, transparent 0 ${s(36)}, #000 ${s(36)})`;
     case "right":
-      return "linear-gradient(to left, transparent 0 36%, #000 36%)";
+      return `linear-gradient(to left, transparent 0 ${s(36)}, #000 ${s(36)})`;
     case "sides":
-      return "linear-gradient(to right, transparent 0 24%, #000 24% 76%, transparent 76%)";
+      return `linear-gradient(to right, transparent 0 ${s(24)}, #000 ${s(24)} ${rest(24)}, transparent ${rest(24)})`;
     case "centerV":
-      return "linear-gradient(to right, #000 0 32%, transparent 32% 68%, #000 68%)";
+      return `linear-gradient(to right, #000 0 ${lo(50, 18)}, transparent ${lo(50, 18)} ${hi(50, 18)}, #000 ${hi(50, 18)})`;
     case "centerH":
-      return "linear-gradient(to bottom, #000 0 38%, transparent 38% 64%, #000 64%)";
+      return `linear-gradient(to bottom, #000 0 ${lo(51, 13)}, transparent ${lo(51, 13)} ${hi(51, 13)}, #000 ${hi(51, 13)})`;
   }
 }
 

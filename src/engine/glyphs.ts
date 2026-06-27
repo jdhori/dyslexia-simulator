@@ -88,7 +88,7 @@ function createGlyph(char: string): GlyphCell {
   el.dataset.char = char.toLowerCase();
   el.textContent = char;
   // Per-glyph random negative delay so wobble never moves in lockstep. The
-  // duration itself comes from --sim-period, driven by the Speed slider.
+  // duration itself comes from --wobble-period, driven by the wobble Speed slider.
   el.style.setProperty("--gd", `${(Math.random() * -2).toFixed(2)}s`);
   return { el, original: char };
 }

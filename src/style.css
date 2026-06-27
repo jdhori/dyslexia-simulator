@@ -286,6 +286,29 @@ main.wrap {
   color: var(--ink-soft);
 }
 
+/* A mode and its own timing/strength sliders. The sliders sit indented beneath
+   the toggle and are shown only while that mode is on. .mode-params is a
+   <fieldset> (with a visually-hidden <legend>), so it needs the usual fieldset
+   resets: clear the default border/min-width, then add just the left rule. */
+.mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mode-params {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-inline-size: 0;
+  margin: 0.05rem 0 0.15rem 0.5rem;
+  padding: 0.5rem 0 0.15rem 0.8rem;
+  border: 0;
+  border-left: 2px solid var(--rule);
+}
+.mode-params[hidden] {
+  display: none;
+}
+
 .slider {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -580,7 +603,8 @@ main.wrap {
   margin: 0;
   font-size: 0.9rem;
   color: var(--ink-soft);
-  max-width: 60ch;
+  /* Full content width — the closing statement spans the page rather than being
+     held to a narrow reading measure. */
 }
 
 .noscript-note {
@@ -611,11 +635,11 @@ main.wrap {
   scale: -1 1;
 }
 
-/* Crowding: spacing collapses so words press together. Intensity controls how
-   tightly via --sim-amp. */
+/* Crowding: spacing collapses so words press together. Its Tightness slider
+   drives --crowd-amp. */
 .sim-visual.m-crowd {
-  letter-spacing: calc(-0.06em * var(--sim-amp, 1));
-  word-spacing: calc(-0.18em * var(--sim-amp, 1));
+  letter-spacing: calc(-0.06em * var(--crowd-amp, 1));
+  word-spacing: calc(-0.18em * var(--crowd-amp, 1));
 }
 
 /* Blur / focus drift. Clearly soft by default (this is also the reduced-motion
@@ -623,17 +647,17 @@ main.wrap {
    snaps fully sharp. Applied to the container — one element, so the filters
    never stack into an over-blur. */
 .sim-visual.m-blur {
-  filter: blur(calc(1.4px * var(--sim-amp, 1)));
+  filter: blur(calc(1.4px * var(--blur-amp, 1)));
 }
 .motion-ok .sim-visual.m-blur {
-  animation: dsx-focus var(--sim-period, 2s) ease-in-out infinite alternate;
+  animation: dsx-focus var(--blur-period, 2s) ease-in-out infinite alternate;
 }
 @keyframes dsx-focus {
   from {
-    filter: blur(calc(0.8px * var(--sim-amp, 1)));
+    filter: blur(calc(0.8px * var(--blur-amp, 1)));
   }
   to {
-    filter: blur(calc(2.6px * var(--sim-amp, 1)));
+    filter: blur(calc(2.6px * var(--blur-amp, 1)));
   }
 }
 
@@ -643,23 +667,23 @@ main.wrap {
    it would promote hundreds of glyph spans to their own layers; the `transform`
    animation is compositor-threaded on its own.) */
 .motion-ok .sim-visual.m-wobble .glyph {
-  animation: dsx-wobble var(--sim-period, 1.6s) var(--gd, 0s) infinite alternate
+  animation: dsx-wobble var(--wobble-period, 1.6s) var(--gd, 0s) infinite alternate
     ease-in-out;
 }
 @keyframes dsx-wobble {
   from {
     transform: translate(
-        calc(-0.4px * var(--sim-amp, 1)),
-        calc(-0.7px * var(--sim-amp, 1))
+        calc(-0.4px * var(--wobble-amp, 1)),
+        calc(-0.7px * var(--wobble-amp, 1))
       )
-      rotate(calc(-2.6deg * var(--sim-amp, 1)));
+      rotate(calc(-2.6deg * var(--wobble-amp, 1)));
   }
   to {
     transform: translate(
-        calc(0.4px * var(--sim-amp, 1)),
-        calc(0.7px * var(--sim-amp, 1))
+        calc(0.4px * var(--wobble-amp, 1)),
+        calc(0.7px * var(--wobble-amp, 1))
       )
-      rotate(calc(2.6deg * var(--sim-amp, 1)));
+      rotate(calc(2.6deg * var(--wobble-amp, 1)));
   }
 }
 

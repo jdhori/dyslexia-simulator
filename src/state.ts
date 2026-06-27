@@ -1,8 +1,10 @@
 // Application settings: a small immutable store with subscribe + localStorage.
+// Each adjustable mode has its own timing/strength, so controls are per-mode.
 
 export interface Settings {
   /** Master switch for the whole effect. */
   readonly enabled: boolean;
+
   // --- modes ---
   /** Typoglycemia: shuffle inner letters, keep first and last. */
   readonly scramble: boolean;
@@ -22,11 +24,21 @@ export interface Settings {
   readonly blur: boolean;
   /** Tighten spacing until words touch. */
   readonly crowding: boolean;
-  // --- timing ---
-  /** Milliseconds between scramble passes. */
-  readonly speedMs: number;
-  /** Fraction of words (0..1) changed on each pass. */
-  readonly intensity: number;
+
+  // --- per-mode timing (ms) + strength (0..1) ---
+  readonly scrambleSpeed: number;
+  readonly scrambleIntensity: number;
+  readonly linejumpSpeed: number;
+  readonly linejumpIntensity: number;
+  readonly perceptionIntensity: number;
+  readonly wobbleSpeed: number;
+  readonly wobbleIntensity: number;
+  readonly blurSpeed: number;
+  readonly blurIntensity: number;
+  readonly crowdingIntensity: number;
+  /** Fraction of each letter removed by the fragment mode. */
+  readonly fragmentIntensity: number;
+
   // --- transient ---
   /** Show the original, unaltered text. Never persisted as `true`. */
   readonly reveal: boolean;
@@ -37,6 +49,23 @@ const SPEED_MIN = 50;
 const SPEED_MAX = 2000;
 const INTENSITY_MIN = 0.02;
 const INTENSITY_MAX = 0.6;
+
+const SPEED_KEYS = [
+  "scrambleSpeed",
+  "linejumpSpeed",
+  "wobbleSpeed",
+  "blurSpeed",
+] as const satisfies readonly (keyof Settings)[];
+
+const INTENSITY_KEYS = [
+  "scrambleIntensity",
+  "linejumpIntensity",
+  "perceptionIntensity",
+  "wobbleIntensity",
+  "blurIntensity",
+  "crowdingIntensity",
+  "fragmentIntensity",
+] as const satisfies readonly (keyof Settings)[];
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
@@ -49,8 +78,19 @@ export const DEFAULT_SETTINGS: Settings = {
   fragment: false,
   blur: false,
   crowding: false,
-  speedMs: 500,
-  intensity: 0.12,
+
+  scrambleSpeed: 500,
+  scrambleIntensity: 0.12,
+  linejumpSpeed: 600,
+  linejumpIntensity: 0.12,
+  perceptionIntensity: 0.2,
+  wobbleSpeed: 400,
+  wobbleIntensity: 0.12,
+  blurSpeed: 1000,
+  blurIntensity: 0.12,
+  crowdingIntensity: 0.12,
+  fragmentIntensity: 0.2,
+
   reveal: false,
 };
 
@@ -89,33 +129,53 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
-    const merged: Settings = { ...DEFAULT_SETTINGS, ...parsed, reveal: false };
+    const merged: Record<string, unknown> = {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      reveal: false,
+    };
     // localStorage is untrusted (DevTools, extensions, same-origin tampering).
-    // Clamp the numeric fields so a bad value can't, e.g., make setInterval(0)
-    // busy-loop the main thread or push intensity outside 0..1.
-    return {
-      ...merged,
-      speedMs: clamp(merged.speedMs, SPEED_MIN, SPEED_MAX, DEFAULT_SETTINGS.speedMs),
-      intensity: clamp(
-        merged.intensity,
+    // Clamp every numeric field so a bad value can't, e.g., make setInterval(0)
+    // busy-loop the main thread or push a strength outside its range.
+    for (const key of SPEED_KEYS) {
+      merged[key] = clamp(merged[key], SPEED_MIN, SPEED_MAX, DEFAULT_SETTINGS[key]);
+    }
+    for (const key of INTENSITY_KEYS) {
+      merged[key] = clamp(
+        merged[key],
         INTENSITY_MIN,
         INTENSITY_MAX,
-        DEFAULT_SETTINGS.intensity,
-      ),
-    };
+        DEFAULT_SETTINGS[key],
+      );
+    }
+    return merged as unknown as Settings;
   } catch {
     return DEFAULT_SETTINGS;
   }
 }
 
-function clamp(value: number, min: number, max: number, fallback: number): number {
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(max, Math.max(min, value));
+function clamp(
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback;
 }
 
 function persist(settings: Settings): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    // Write only the known settings keys, so a legacy blob's stale fields (e.g.
+    // the old global speedMs/intensity) don't round-trip back into storage. The
+    // transient `reveal` flag is never persisted — a reload always simulates.
+    const toStore: Record<string, unknown> = {};
+    for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]) {
+      if (key === "reveal") continue;
+      toStore[key] = settings[key];
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
   } catch {
     // Storage can be unavailable (private mode, quota). Non-fatal.
   }

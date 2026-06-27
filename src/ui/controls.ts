@@ -1,6 +1,10 @@
 // The control panel. Builds an accessible <form> of grouped controls and keeps
 // them in sync with the settings store (so e.g. pressing Esc to reveal also
 // updates the reveal button here).
+//
+// Each mode carries its own timing/strength sliders, shown beneath the mode and
+// only while that mode is on, so a reader can tune one effect without touching
+// the others.
 
 import { prefersReducedMotion, setMotionOverride } from "../engine/motion";
 import type { Settings, SettingsStore } from "../state";
@@ -18,11 +22,35 @@ type ModeKey = Extract<
   | "crowding"
 >;
 
+/** A numeric Settings field exposed as a slider under its mode. */
+type NumericKey = {
+  [K in keyof Settings]: Settings[K] extends number ? K : never;
+}[keyof Settings];
+
+interface ParamDef {
+  key: NumericKey;
+  label: string;
+  /** "speed" is an ms value; "fraction" is a 0..1 strength shown as a percent. */
+  kind: "speed" | "fraction";
+}
+
 interface ModeDef {
   key: ModeKey;
   label: string;
   hint: string;
+  params?: ParamDef[];
 }
+
+const SPEED = (key: NumericKey, label = "Speed"): ParamDef => ({
+  key,
+  label,
+  kind: "speed",
+});
+const STRENGTH = (key: NumericKey, label = "Intensity"): ParamDef => ({
+  key,
+  label,
+  kind: "fraction",
+});
 
 // Effects that read as dyslexia itself (letter movement and reversal)...
 const DYSLEXIA_MODES: ModeDef[] = [
@@ -30,6 +58,7 @@ const DYSLEXIA_MODES: ModeDef[] = [
     key: "scramble",
     label: "Letter scramble",
     hint: "Inner letters shuffle; first and last stay put.",
+    params: [SPEED("scrambleSpeed"), STRENGTH("scrambleIntensity")],
   },
   {
     key: "scrambleEnds",
@@ -45,11 +74,13 @@ const DYSLEXIA_MODES: ModeDef[] = [
     key: "linejump",
     label: "Jumping letters",
     hint: "Letters switch places with the word directly above or below (never with empty space). Needs motion.",
+    params: [SPEED("linejumpSpeed"), STRENGTH("linejumpIntensity")],
   },
   {
     key: "fragment",
     label: "Letter fragments",
     hint: "Removes part of each letter, so words must be decoded slowly — an approximation of Daniel Britton's *Dyslexia* typeface.",
+    params: [STRENGTH("fragmentIntensity", "Removal size")],
   },
 ];
 
@@ -58,26 +89,31 @@ const OTHER_MODES: ModeDef[] = [
   {
     key: "perception",
     label: "Perception alphabet",
-    hint: "Letters mirror, tilt, drift and fade.",
+    hint: "How some people with learning or developmental disabilities perceive characters — letters mirror, tilt, drift and fade.",
+    params: [STRENGTH("perceptionIntensity")],
   },
   {
     key: "wobble",
     label: "Visual wobble",
-    hint: "Letters tremble and never hold still. Needs motion.",
+    hint: "A reading disorder some people experience — letters tremble and never hold still. Needs motion.",
+    params: [SPEED("wobbleSpeed"), STRENGTH("wobbleIntensity")],
   },
   {
     key: "blur",
     label: "Blur / focus drift",
     hint: "Focus slips in and out.",
+    params: [SPEED("blurSpeed"), STRENGTH("blurIntensity")],
   },
   {
     key: "crowding",
     label: "Crowding",
     hint: "Spacing tightens until words touch.",
+    params: [STRENGTH("crowdingIntensity", "Tightness")],
   },
 ];
 
-const ALL_MODES: ModeDef[] = [...DYSLEXIA_MODES, ...OTHER_MODES];
+/** Callbacks that push the current settings back into a control. */
+type Reflector = (settings: Settings) => void;
 
 export function buildControls(root: HTMLElement, store: SettingsStore): void {
   root.replaceChildren();
@@ -87,6 +123,8 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
   form.setAttribute("aria-label", "Simulation controls");
   form.addEventListener("submit", (event) => event.preventDefault());
 
+  const reflectors: Reflector[] = [];
+
   // --- header: title, master switch, reveal toggle, tip ---
   const header = document.createElement("div");
   header.className = "control-header";
@@ -95,12 +133,13 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
   title.className = "controls-title";
   title.textContent = "Controls";
 
-  const master = checkbox(
-    "Simulation on",
-    store.get().enabled,
-    (value) => store.update({ enabled: value }),
+  const master = checkbox("Simulation on", store.get().enabled, (value) =>
+    store.update({ enabled: value }),
   );
   master.wrapper.classList.add("control-master");
+  reflectors.push((s) => {
+    master.input.checked = s.enabled;
+  });
 
   const reveal = document.createElement("button");
   reveal.type = "button";
@@ -115,6 +154,7 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
   reveal.addEventListener("click", () =>
     store.update({ reveal: !store.get().reveal }),
   );
+  reflectors.push((s) => setRevealState(s.reveal));
 
   const escHint = document.createElement("p");
   escHint.className = "control-hint";
@@ -123,37 +163,14 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
   header.append(title, master.wrapper, reveal, escHint);
   form.appendChild(header);
 
-  // --- groups: two named mode groups + timing (+ motion when relevant) ---
+  // --- groups: two named mode groups (+ motion when relevant) ---
   const groups = document.createElement("div");
   groups.className = "control-groups";
 
-  const modeInputs = new Map<ModeKey, HTMLInputElement>();
-  groups.appendChild(buildModeGroup("Dyslexia", DYSLEXIA_MODES, store, modeInputs));
+  groups.appendChild(buildModeGroup("Dyslexia", DYSLEXIA_MODES, store, reflectors));
   groups.appendChild(
-    buildModeGroup("Other reading disorders", OTHER_MODES, store, modeInputs),
+    buildModeGroup("Other reading disorders", OTHER_MODES, store, reflectors),
   );
-
-  const timing = fieldset("Timing");
-  const speed = slider({
-    label: "Speed",
-    min: 50,
-    max: 2000,
-    step: 50,
-    value: store.get().speedMs,
-    format: (value) => `${value} ms (lower is faster)`,
-    onInput: (value) => store.update({ speedMs: value }),
-  });
-  const intensity = slider({
-    label: "Intensity",
-    min: 2,
-    max: 60,
-    step: 2,
-    value: Math.round(store.get().intensity * 100),
-    format: (value) => `${value}% strength`,
-    onInput: (value) => store.update({ intensity: value / 100 }),
-  });
-  timing.append(speed.wrapper, intensity.wrapper);
-  groups.appendChild(timing);
 
   if (prefersReducedMotion()) {
     const motionGroup = fieldset("Motion");
@@ -173,12 +190,7 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
 
   // Keep controls reflecting the store (e.g. Esc-to-reveal, persisted state).
   store.subscribe((next) => {
-    setRevealState(next.reveal);
-    master.input.checked = next.enabled;
-    for (const mode of ALL_MODES) {
-      const input = modeInputs.get(mode.key);
-      if (input) input.checked = next[mode.key];
-    }
+    for (const reflect of reflectors) reflect(next);
   });
 }
 
@@ -186,20 +198,76 @@ function buildModeGroup(
   legendText: string,
   modes: ModeDef[],
   store: SettingsStore,
-  modeInputs: Map<ModeKey, HTMLInputElement>,
+  reflectors: Reflector[],
 ): HTMLFieldSetElement {
   const group = fieldset(legendText);
   for (const mode of modes) {
+    const modeWrap = document.createElement("div");
+    modeWrap.className = "mode";
+
     const control = checkbox(
       mode.label,
       store.get()[mode.key],
       (value) => store.update({ [mode.key]: value } as Partial<Settings>),
       mode.hint,
     );
-    modeInputs.set(mode.key, control.input);
-    group.appendChild(control.wrapper);
+    modeWrap.appendChild(control.wrapper);
+
+    if (mode.params?.length) {
+      // A fieldset with a visually-hidden legend names this mode's sliders, so a
+      // screen-reader user landing on a "Speed" slider out of spatial context
+      // still knows which effect it belongs to (the visible label stays "Speed").
+      const params = document.createElement("fieldset");
+      params.className = "mode-params";
+      params.hidden = !store.get()[mode.key];
+      const legend = document.createElement("legend");
+      legend.className = "sr-only";
+      legend.textContent = `${mode.label} settings`;
+      params.appendChild(legend);
+      for (const param of mode.params) {
+        params.appendChild(buildParam(param, store, reflectors));
+      }
+      modeWrap.appendChild(params);
+      reflectors.push((s) => {
+        control.input.checked = s[mode.key];
+        params.hidden = !s[mode.key];
+      });
+    } else {
+      reflectors.push((s) => {
+        control.input.checked = s[mode.key];
+      });
+    }
+
+    group.appendChild(modeWrap);
   }
   return group;
+}
+
+function buildParam(
+  param: ParamDef,
+  store: SettingsStore,
+  reflectors: Reflector[],
+): HTMLElement {
+  const isFraction = param.kind === "fraction";
+  const toSlider = (s: Settings): number =>
+    isFraction ? Math.round((s[param.key] as number) * 100) : (s[param.key] as number);
+  const fromSlider = (value: number): number => (isFraction ? value / 100 : value);
+  const format = (value: number): string =>
+    isFraction ? `${value}%` : `${value} ms`;
+
+  const control = slider({
+    label: param.label,
+    min: isFraction ? 2 : 50,
+    max: isFraction ? 60 : 2000,
+    step: isFraction ? 2 : 50,
+    value: toSlider(store.get()),
+    format,
+    onInput: (value) =>
+      store.update({ [param.key]: fromSlider(value) } as Partial<Settings>),
+  });
+
+  reflectors.push((s) => control.set(toSlider(s)));
+  return control.wrapper;
 }
 
 // --- small accessible control builders ---
@@ -285,6 +353,8 @@ interface SliderConfig {
 interface SliderControl {
   wrapper: HTMLElement;
   input: HTMLInputElement;
+  /** Push a value in from the store without firing onInput. */
+  set: (value: number) => void;
 }
 
 function slider(config: SliderConfig): SliderControl {
@@ -298,7 +368,7 @@ function slider(config: SliderConfig): SliderControl {
   input.max = String(config.max);
   input.step = String(config.step);
   input.value = String(config.value);
-  // So the thumb announces "12% strength" rather than just "12".
+  // So the thumb announces "12%" / "500 ms" rather than just the bare number.
   input.setAttribute("aria-valuetext", config.format(config.value));
 
   const labelEl = document.createElement("label");
@@ -307,7 +377,18 @@ function slider(config: SliderConfig): SliderControl {
 
   const output = document.createElement("output");
   output.setAttribute("for", input.id);
+  // Decorative: the value is already conveyed to AT via the slider's
+  // aria-valuetext, and <output> live-region support is unreliable. Hiding it
+  // avoids both silent failures and double-announcements.
+  output.setAttribute("aria-hidden", "true");
   output.textContent = config.format(config.value);
+
+  const set = (value: number): void => {
+    input.value = String(value);
+    const text = config.format(value);
+    output.textContent = text;
+    input.setAttribute("aria-valuetext", text);
+  };
 
   input.addEventListener("input", () => {
     const value = Number(input.value);
@@ -318,5 +399,5 @@ function slider(config: SliderConfig): SliderControl {
   });
 
   wrapper.append(labelEl, input, output);
-  return { wrapper, input };
+  return { wrapper, input, set };
 }

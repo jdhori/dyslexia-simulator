@@ -5,12 +5,16 @@
 // screen reader user does not experience visual scrambling and should never hear
 // reordered letters. When `srCopy` is requested, an off-screen, unaltered copy
 // of the text is left in the accessibility tree so the real content is available.
+//
+// Each mode has its own timing/strength, so scramble and line-jump run on
+// independent timers and every CSS mode reads its own custom property.
 
 import { buildGlyphModel, type GlyphCell, type GlyphModel } from "./glyphs";
 import { restoreWord, scrambleWord, swapCells } from "./scramble";
 import { ensurePerceptionStyles } from "./perception";
 import { ensureFragmentStyles } from "./fragment";
 import { isMotionAllowed } from "./motion";
+import { amp, periodMs } from "./cssParams";
 import type { Settings } from "../state";
 
 interface SimulatorOptions {
@@ -20,14 +24,6 @@ interface SimulatorOptions {
 
 /** Passes used to reach a clearly-scrambled but motionless state. */
 const STATIC_PASSES = 6;
-
-/** CSS animation period (ms) = speedMs * this, so Speed drives the CSS modes. */
-const PERIOD_FACTOR = 4;
-/** CSS-mode amplitude scales linearly with intensity: AMP_FLOOR + intensity *
- *  AMP_SCALE. Across the slider's 2%–60% range this spans ~0.55–2.0, so the
- *  whole slider changes the effect (no saturated dead zone). */
-const AMP_FLOOR = 0.5;
-const AMP_SCALE = 2.5;
 
 /** Recompute the line layout at least this often, to track scramble's drift. */
 const NEIGHBOR_REFRESH_TICKS = 30;
@@ -51,7 +47,8 @@ export class Simulator {
   private readonly visualEl: HTMLElement;
   private readonly model: GlyphModel;
   private srEl: HTMLElement | null = null;
-  private timer: number | null = null;
+  private scrambleTimer: number | null = null;
+  private linejumpTimer: number | null = null;
   private settings: Settings | null = null;
 
   // Vertical-neighbour map for the line-switching effect, plus its freshness.
@@ -81,38 +78,47 @@ export class Simulator {
 
   apply(settings: Settings): void {
     this.settings = settings;
-    this.applyTempoAndAmplitude(settings);
+    this.applyParams(settings);
     this.invalidateNeighborsIfLayoutChanged(settings);
 
     const motion = isMotionAllowed();
     const active = settings.enabled && !settings.reveal;
 
     this.syncClasses(settings, active, motion);
-    this.clearTimer();
+    this.clearTimers();
 
     if (!active) {
       this.restoreAll();
       return;
     }
 
-    const runLineJump = settings.linejump && motion;
-    const dynamic = settings.scramble || runLineJump;
+    // A clean baseline when nothing is rewriting the text, so the static modes
+    // (perception, flip, fragment…) apply to the correct letters.
+    if (!settings.scramble) this.restoreAll();
 
-    if (motion && dynamic) {
-      // Start from clean text if only the line-switch is running.
-      if (!settings.scramble) this.restoreAll();
-      this.timer = window.setInterval(() => this.tick(), settings.speedMs);
-    } else if (settings.scramble) {
-      // Reduced motion: one static scramble pass, no live churn or switching.
-      this.restoreAll();
-      this.staticScramble();
-    } else {
-      this.restoreAll();
+    if (settings.scramble) {
+      if (motion) {
+        this.scrambleTimer = window.setInterval(
+          () => this.scrambleTick(),
+          settings.scrambleSpeed,
+        );
+      } else {
+        this.restoreAll();
+        this.staticScramble();
+      }
+    }
+
+    // Line-jump is motion-gated and runs on its own clock.
+    if (settings.linejump && motion) {
+      this.linejumpTimer = window.setInterval(
+        () => this.lineJumpTick(),
+        settings.linejumpSpeed,
+      );
     }
   }
 
   destroy(): void {
-    this.clearTimer();
+    this.clearTimers();
     this.restoreAll();
     this.resizeObserver.disconnect();
     this.neighbors = null;
@@ -120,12 +126,16 @@ export class Simulator {
     this.srEl = null;
   }
 
-  // Expose Speed/Intensity to the CSS modes via custom properties so the
-  // sliders affect wobble, blur and crowding — not just the scramble loop.
-  private applyTempoAndAmplitude(s: Settings): void {
-    const amp = AMP_FLOOR + s.intensity * AMP_SCALE;
-    this.visualEl.style.setProperty("--sim-period", `${s.speedMs * PERIOD_FACTOR}ms`);
-    this.visualEl.style.setProperty("--sim-amp", amp.toFixed(3));
+  // Expose each mode's strength/tempo to its CSS via custom properties.
+  private applyParams(s: Settings): void {
+    const v = this.visualEl.style;
+    v.setProperty("--perception-amp", amp(s.perceptionIntensity));
+    v.setProperty("--wobble-amp", amp(s.wobbleIntensity));
+    v.setProperty("--wobble-period", periodMs(s.wobbleSpeed));
+    v.setProperty("--blur-amp", amp(s.blurIntensity));
+    v.setProperty("--blur-period", periodMs(s.blurSpeed));
+    v.setProperty("--crowd-amp", amp(s.crowdingIntensity));
+    v.setProperty("--fragment-amp", amp(s.fragmentIntensity));
   }
 
   private syncClasses(s: Settings, active: boolean, motion: boolean): void {
@@ -138,26 +148,25 @@ export class Simulator {
     v.classList.toggle("m-fragment", active && s.fragment);
   }
 
-  private tick(): void {
+  private scrambleTick(): void {
     const s = this.settings;
     if (!s) return;
-    if (s.scramble) {
-      for (const word of this.model.words) {
-        if (Math.random() < s.intensity) scrambleWord(word, s.scrambleEnds);
-      }
+    for (const word of this.model.words) {
+      if (Math.random() < s.scrambleIntensity) scrambleWord(word, s.scrambleEnds);
     }
-    if (s.linejump) this.lineJumpTick(s);
   }
 
   // Switch letters with the word directly above or below — but only where such a
   // word exists. Letters at the top or bottom of the text, or beside a paragraph
   // gap, have no neighbour there and so never jump into empty space.
-  private lineJumpTick(s: Settings): void {
+  private lineJumpTick(): void {
+    const s = this.settings;
+    if (!s) return;
     const map = this.ensureNeighbors();
     const used = new Set<GlyphCell>();
     for (const [cell, neighbor] of map) {
       if (used.has(cell)) continue;
-      if (Math.random() >= s.intensity) continue;
+      if (Math.random() >= s.linejumpIntensity) continue;
 
       const options: GlyphCell[] = [];
       if (neighbor.up && !used.has(neighbor.up)) options.push(neighbor.up);
@@ -235,8 +244,8 @@ export class Simulator {
   }
 
   private invalidateNeighborsIfLayoutChanged(s: Settings): void {
-    // Only crowding (and, while crowding is on, intensity) changes line wrapping.
-    const key = `${s.crowding}|${s.crowding ? s.intensity : 0}`;
+    // Only crowding (and, while crowding is on, its strength) rewraps lines.
+    const key = `${s.crowding}|${s.crowding ? s.crowdingIntensity : 0}`;
     if (key !== this.layoutKey) {
       this.layoutKey = key;
       this.neighbors = null;
@@ -254,10 +263,14 @@ export class Simulator {
     for (const word of this.model.words) restoreWord(word);
   }
 
-  private clearTimer(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer);
-      this.timer = null;
+  private clearTimers(): void {
+    if (this.scrambleTimer !== null) {
+      clearInterval(this.scrambleTimer);
+      this.scrambleTimer = null;
+    }
+    if (this.linejumpTimer !== null) {
+      clearInterval(this.linejumpTimer);
+      this.linejumpTimer = null;
     }
   }
 
