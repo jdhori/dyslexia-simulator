@@ -1,8 +1,10 @@
 // Renders a LaTeX equation with KaTeX and applies the simulation to it:
 //
-//  - the \text{...} words get the letter scramble (typoglycemia);
-//  - ordinary math characters (letters, variables, small operators) get the
-//    per-glyph visual modes — perception, wobble, blur, and b/d/p/q flips;
+//  - the \text{...} words are split into per-letter glyphs, so they scramble
+//    (typoglycemia) AND take the per-glyph visual modes — perception, wobble,
+//    blur, b/d/p/q flips, and the letter-fragment masks — like ordinary text;
+//  - other math characters (variables, digits, small operators) get the same
+//    per-glyph visual modes; variables and digits also mix positions;
 //  - structural pieces (fractions, roots, large operators, big delimiters) are
 //    left untouched, so the equation's shape stays intact;
 //  - crowding and line-jumping are never applied (they would wreck an equation).
@@ -15,26 +17,11 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 import { isMotionAllowed } from "./motion";
 import { amp, periodMs } from "./cssParams";
+import { restoreWord, scrambleWord, swapCells } from "./scramble";
+import type { GlyphCell, WordRun } from "./glyphs";
 import type { Settings } from "../state";
 
-interface Word {
-  readonly start: number;
-  readonly length: number;
-}
-
-interface TextSpan {
-  readonly el: HTMLElement;
-  readonly original: string;
-  readonly words: Word[];
-}
-
-interface MathGlyph {
-  readonly el: HTMLElement;
-  readonly original: string;
-}
-
 const STATIC_PASSES = 6;
-const WORD_RE = /\p{L}{4,}/gu;
 
 // "Visual" math structures — division (fractions), sums and other large
 // operators, square roots, and stretchy delimiters. Their glyphs never move.
@@ -42,8 +29,11 @@ const STRUCTURAL_SELECTOR = ".mop, .op-symbol, .sqrt, .mfrac, .delimsizing";
 
 export class MathSimulator {
   private readonly host: HTMLElement; // KaTeX's visual (.katex-html) layer
-  private readonly textSpans: TextSpan[] = [];
-  private readonly mathGlyphs: MathGlyph[] = []; // single-letter vars + digits
+  // \text{...} content, split into per-letter glyphs and grouped into words so
+  // the scramble keeps each word's first and last letters in place.
+  private readonly textWords: WordRun[] = [];
+  // Single-letter variables + digits, which mix positions with each other.
+  private readonly mathGlyphs: GlyphCell[] = [];
   private timer: number | null = null;
   private settings: Settings | null = null;
 
@@ -56,7 +46,7 @@ export class MathSimulator {
     this.host = container.querySelector<HTMLElement>(".katex-html") ?? container;
     this.host.classList.add("sim-visual", "sim-math");
     this.tagGlyphs();
-    this.collectText();
+    this.wrapTextGlyphs();
   }
 
   apply(settings: Settings): void {
@@ -64,22 +54,24 @@ export class MathSimulator {
     const motion = isMotionAllowed();
     const active = settings.enabled && !settings.reveal;
 
-    // Each visual mode reads its own strength/tempo (math has no crowding,
-    // fragment or line-jump, so those vars are not set here).
+    // Each visual mode reads its own strength/tempo (math has no crowding or
+    // line-jump, so those vars are not set here).
     const style = this.host.style;
     style.setProperty("--perception-amp", amp(settings.perceptionIntensity));
     style.setProperty("--wobble-amp", amp(settings.wobbleIntensity));
     style.setProperty("--wobble-period", periodMs(settings.wobbleSpeed));
     style.setProperty("--blur-amp", amp(settings.blurIntensity));
     style.setProperty("--blur-period", periodMs(settings.blurSpeed));
+    style.setProperty("--fragment-amp", amp(settings.fragmentIntensity));
 
-    // Perception / flip / blur / wobble apply to math — but never crowding or
-    // line-jumping.
+    // Perception / flip / blur / wobble / fragments apply to math — but never
+    // crowding or line-jumping.
     const v = this.host;
     v.classList.toggle("m-flip", active && settings.flip);
     v.classList.toggle("m-perception", active && settings.perception);
     v.classList.toggle("m-blur", active && settings.blur);
     v.classList.toggle("m-wobble", active && settings.wobble && motion);
+    v.classList.toggle("m-fragment", active && settings.fragment);
 
     this.clearTimer();
     if (!active || !settings.scramble) {
@@ -100,7 +92,7 @@ export class MathSimulator {
   }
 
   // Tag ordinary math character spans as glyphs so the per-glyph CSS modes apply
-  // to them — skipping \text (the scramble handles that) and structural pieces.
+  // to them — skipping \text (handled separately) and structural pieces.
   private tagGlyphs(): void {
     const walker = document.createTreeWalker(this.host, NodeFilter.SHOW_TEXT, {
       acceptNode(node: Node): number {
@@ -131,29 +123,43 @@ export class MathSimulator {
     }
   }
 
-  private collectText(): void {
-    const spans = this.host.querySelectorAll<HTMLElement>(".text");
-    for (const el of spans) {
-      if (el.parentElement?.closest(".text")) continue;
-      const original = el.textContent ?? "";
-      const words = extractWords(original);
-      if (words.length > 0) {
-        this.textSpans.push({ el, original, words });
+  // Split each \text{...} run into per-letter <span class="glyph"> elements so
+  // the fragment masks and other per-glyph modes reach the words too. Spaces are
+  // kept as plain text nodes (preserving KaTeX's spacing) and break words.
+  private wrapTextGlyphs(): void {
+    for (const span of this.host.querySelectorAll<HTMLElement>(".text")) {
+      if (!span.isConnected) continue; // a parent .text was already rewrapped
+      if (span.parentElement?.closest(".text")) continue; // skip nested .text
+      const text = span.textContent ?? "";
+      if (!text) continue;
+
+      span.textContent = "";
+      let cells: GlyphCell[] = [];
+      for (const ch of text) {
+        if (/\s/.test(ch)) {
+          span.appendChild(document.createTextNode(ch));
+          if (cells.length) {
+            this.textWords.push({ cells });
+            cells = [];
+          }
+          continue;
+        }
+        const el = document.createElement("span");
+        el.className = "glyph";
+        el.dataset.char = ch.toLowerCase();
+        el.textContent = ch;
+        span.appendChild(el);
+        cells.push({ el, original: ch });
       }
+      if (cells.length) this.textWords.push({ cells });
     }
   }
 
   private tick(): void {
     const s = this.settings;
     if (!s) return;
-    for (const span of this.textSpans) {
-      const chars = (span.el.textContent ?? span.original).split("");
-      for (const word of span.words) {
-        if (Math.random() < s.scrambleIntensity) {
-          swapInner(chars, word, s.scrambleEnds);
-        }
-      }
-      span.el.textContent = chars.join("");
+    for (const word of this.textWords) {
+      if (Math.random() < s.scrambleIntensity) scrambleWord(word, s.scrambleEnds);
     }
     this.mixMath(s.scrambleIntensity);
   }
@@ -161,11 +167,7 @@ export class MathSimulator {
   private staticScramble(): void {
     const includeEnds = this.settings?.scrambleEnds ?? false;
     for (let pass = 0; pass < STATIC_PASSES; pass++) {
-      for (const span of this.textSpans) {
-        const chars = (span.el.textContent ?? span.original).split("");
-        for (const word of span.words) swapInner(chars, word, includeEnds);
-        span.el.textContent = chars.join("");
-      }
+      for (const word of this.textWords) scrambleWord(word, includeEnds);
       this.mixMath(1);
     }
   }
@@ -181,18 +183,15 @@ export class MathSimulator {
       if (used.has(i) || Math.random() >= intensity) continue;
       const j = (i + 1 + Math.floor(Math.random() * (n - 1))) % n; // j !== i
       if (used.has(j)) continue;
-      swapGlyphChars(cells[i].el, cells[j].el);
+      swapCells(cells[i], cells[j]);
       used.add(i);
       used.add(j);
     }
   }
 
   private restore(): void {
-    for (const span of this.textSpans) span.el.textContent = span.original;
-    for (const glyph of this.mathGlyphs) {
-      glyph.el.textContent = glyph.original;
-      glyph.el.dataset.char = glyph.original.toLowerCase();
-    }
+    for (const word of this.textWords) restoreWord(word);
+    restoreWord({ cells: this.mathGlyphs });
   }
 
   private clearTimer(): void {
@@ -201,42 +200,4 @@ export class MathSimulator {
       this.timer = null;
     }
   }
-}
-
-function extractWords(value: string): Word[] {
-  const words: Word[] = [];
-  WORD_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = WORD_RE.exec(value)) !== null) {
-    words.push({ start: match.index, length: match[0].length });
-  }
-  return words;
-}
-
-// Scramble within one word. Classic typoglycemia keeps first and last fixed;
-// includeEnds opens the whole word to a full anagram.
-function swapInner(chars: string[], word: Word, includeEnds: boolean): void {
-  const lo = includeEnds ? word.start : word.start + 1;
-  const hi = includeEnds ? word.start + word.length - 1 : word.start + word.length - 2;
-  if (hi - lo < 1) return;
-  const a = randInt(lo, hi);
-  let b = randInt(lo, hi);
-  if (a === b) b = a === hi ? lo : a + 1;
-  const tmp = chars[a];
-  chars[a] = chars[b];
-  chars[b] = tmp;
-}
-
-// Swap the displayed character (and its data-char) between two glyph spans.
-function swapGlyphChars(a: HTMLElement, b: HTMLElement): void {
-  const ca = a.textContent ?? "";
-  const cb = b.textContent ?? "";
-  a.textContent = cb;
-  b.textContent = ca;
-  a.dataset.char = cb.trim().toLowerCase();
-  b.dataset.char = ca.trim().toLowerCase();
-}
-
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1) + min);
 }

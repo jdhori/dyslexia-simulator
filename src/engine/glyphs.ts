@@ -6,7 +6,9 @@
 import { collectTextNodes } from "./textNodes";
 
 export interface GlyphCell {
-  readonly el: HTMLSpanElement;
+  // HTMLElement (not just HTMLSpanElement) so a cell can also wrap an existing
+  // KaTeX glyph element, which the math simulator reuses in place.
+  readonly el: HTMLElement;
   readonly original: string;
 }
 
