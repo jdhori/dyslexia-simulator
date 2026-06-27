@@ -123,9 +123,7 @@ src/
   [Irlen Syndrome](https://irlen.com/what-is-irlen-syndrome/).
 - Daniel Britton’s
   [*Dyslexia* typeface](https://www.boredpanda.com/dyslexic-typrface-daniel-britton/),
-  which simulates the *effort* of decoding by removing parts of each letter — and
-  his
-  [dyslexia educational pack](https://www.crowdfunder.co.uk/p/dyslexia-educational-pack).
+  which simulates the *effort* of decoding by removing parts of each letter.
 
 ## License
 
