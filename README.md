@@ -1,8 +1,9 @@
 # Dyslexia, Irlen Syndrome & Reading-Disorder Simulator
 
-An interactive, accessible simulator of how **dyslexia, Irlen Syndrome, and
-other reading disorders** can make text feel — built to create a moment of
-empathy, not to diagnose. It is a modern TypeScript fork of Victor Widell's 2016
+An interactive, accessible simulator of how **Dyslexia, Irlen Syndrome, Low
+Vision, and other reading disorders** can make text feel — built to create a
+moment of empathy, not to diagnose. It is a modern TypeScript fork of Victor
+Widell's 2016
 demo
 [“Dsxyliea”](https://geon.github.io/programming/2016/03/03/dsxyliea), expanded
 with several new effects, a math-content demo, a day/night theme, and
@@ -12,8 +13,11 @@ accessibility safeguards throughout.
 > person. It is *not* literally “moving letters” for everyone, and this is **not
 > a diagnostic tool or a medical model**. Several of these effects also overlap
 > with **Irlen Syndrome** (scotopic sensitivity / visual stress) — a distinct
-> perceptual condition. This recreates *some* commonly described visual
-> experiences to build empathy — nothing more.
+> perceptual condition. **Low vision** readers may meet the *Letter fragments*
+> and *Blur / focus drift* effects in everyday reading, because black text on a
+> white background can be overpowering — many find white text on a dark
+> background easier, though everyone is different. This recreates *some* commonly
+> described visual experiences to build empathy — nothing more.
 
 ## Effects
 
@@ -45,8 +49,8 @@ effects on STEM material:
 
 - The `\text{…}` words **scramble**, and ordinary variables and digits **mix
   positions** with each other (a full anagram across the equation).
-- The visual modes (perception, wobble, blur, b/d/p/q flips) distort the math
-  letters too.
+- The visual modes (perception, wobble, blur, b/d/p/q flips, letter fragments)
+  distort the math letters too.
 - Structural pieces — fractions, large operators (∑, ∫), square roots, stretchy
   delimiters — are **left intact**, so the equation keeps its shape. Crowding is
   never applied to math.

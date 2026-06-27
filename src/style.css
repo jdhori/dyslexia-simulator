@@ -499,10 +499,6 @@ main.wrap {
   line-height: 1.65;
   color: var(--ink-soft);
 }
-.math-note .menu-path {
-  font-weight: 600;
-  color: var(--ink);
-}
 
 /* --- sections below the fold --- */
 

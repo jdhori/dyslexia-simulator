@@ -6,7 +6,7 @@
     <title>Dyslexia, Irlen Syndrome &amp; reading-disorder simulator</title>
     <meta
       name="description"
-      content="An accessible, interactive simulator of how dyslexia, Irlen Syndrome, and other reading disorders can make text feel — a modern fork of Victor Widell's 2016 demo."
+      content="An accessible, interactive simulator of how Dyslexia, Irlen Syndrome, Low Vision, and other reading disorders can make text feel — a modern fork of Victor Widell's 2016 demo."
     />
     <meta name="color-scheme" content="light dark" />
   </head>
@@ -20,12 +20,13 @@
       <div class="wrap">
         <div class="masthead-text">
           <p class="eyebrow">
-            Dyslexia · Irlen Syndrome · other reading disorders
+            Dyslexia · Irlen Syndrome · Low Vision · other reading disorders
           </p>
           <h1 class="title">This is how reading <em>can</em> feel.</h1>
           <p class="lede">
-            An empathy and awareness tool that simulates how dyslexia, Irlen
-            Syndrome, and other reading disorders can make text feel. It
+            An empathy and awareness tool that simulates how Dyslexia, Irlen
+            Syndrome, Low Vision, and other reading disorders can make text
+            feel. It
             recreates a few of the experiences people have described — so you can
             feel the effort for a moment. Use the controls to change what
             happens.
@@ -39,9 +40,12 @@
           <strong>Irlen Syndrome</strong> (also called scotopic sensitivity or
           visual stress) — a perceptual processing difference, distinct from
           dyslexia, in which text can appear to blur, swirl, double, or move, and
-          which is often eased by colored overlays or tinted lenses. It is a
-          simulation of <em>some</em> commonly described visual experiences,
-          meant to build empathy — nothing more.
+          which is often eased by colored overlays or tinted lenses.
+          <strong>Low vision</strong> readers report some of these experiences
+          too — <em>Letter fragments</em>, <em>Blur / focus drift</em>, and
+          <em>Crowding</em> among them — and some ease them with prescription
+          glasses. It is a simulation of <em>some</em> commonly described visual
+          experiences, meant to build empathy — nothing more.
         </p>
       </div>
     </header>
@@ -107,26 +111,19 @@
             <h3 class="math-heading">Math content</h3>
             <p class="section-note">
               Applied to math, the scramble garbles the words but leaves the
-              equation itself intact. Perception, Visual wobble, and Blur / focus
-              drift are available for math content too.
+              equation itself intact. Perception, Visual wobble, Blur / focus
+              drift, and Letter fragments are available for math content too.
             </p>
             <div class="math-surface">
               <!-- KaTeX is rendered here by src/engine/mathSimulator.ts -->
               <div id="math-root"></div>
             </div>
             <p class="math-note">
-              <strong>Screen readers</strong> can interact with math equations.
-              NVDA needs the
-              <a href="https://nvda-addons.org/addon.php?id=272" rel="noopener"
-                >MathCAT add-on</a
-              >
-              to read math. If an equation is shown as an SVG image (as MathJax
-              sometimes does), it can be inaccessible: right-click the equation
-              (or press <kbd>Shift</kbd> + <kbd>F10</kbd>) and choose
-              <span class="menu-path"
-                >Math Settings → Math Renderer → HTML-CSS</span
-              >
-              for the best results.
+              <strong>Screen readers</strong> can interact with the equation and
+              read it aloud: any user can step through it character by character,
+              and capitalization is announced by a shift in tone or pitch.
+              General text-to-speech, by contrast, reads the words and Greek
+              letters but not the math symbols.
             </p>
           </div>
         </section>
@@ -169,10 +166,21 @@
             <dt>Jumping letters</dt>
             <dd>
               Letters switch places with the word directly above or below them,
-              so the eye keeps losing its place between rows. Letters with
-              nothing above or below — at the start or end of the text, or beside
-              a paragraph gap — stay put, because there is nothing to switch
-              with.
+              so the eye keeps losing its place between rows — an experience
+              dyslexic readers have reported. Letters with nothing above or
+              below — at the start or end of the text, or beside a paragraph
+              gap — stay put, because there is nothing to switch with.
+            </dd>
+          </div>
+          <div>
+            <dt>Letter fragments</dt>
+            <dd>
+              Part of every letter is removed, so each word must be decoded
+              slowly. Lower removal sizes echo the dyslexic effort of decoding;
+              higher sizes evoke a low-vision experience of black text on white,
+              where the white overpowers the characters. It was inspired by
+              Daniel Britton&rsquo;s <em>Dyslexia</em> typeface, which simulated
+              removing parts of each character to convey the effort of reading.
             </dd>
           </div>
           <div>
@@ -196,16 +204,20 @@
           <div>
             <dt>Blur / focus drift</dt>
             <dd>
-              Focus slips in and out — the way tired eyes lose a sharp edge, and
-              the way some people with low vision experience text on white
-              backgrounds.
+              Focus slips in and out — the way tired eyes lose a sharp edge, the
+              way some people with low vision experience text on white
+              backgrounds, and the way text can look before someone starts
+              wearing glasses.
             </dd>
           </div>
           <div>
             <dt>Crowding</dt>
             <dd>
               Spacing tightens until letters and words press together and the
-              white &ldquo;rivers&rdquo; between words vanish.
+              white &ldquo;rivers&rdquo; between words vanish — a reading
+              experience described by people with dyslexia, Irlen Syndrome, and
+              other reading disorders, and sometimes by those prior to wearing
+              glasses.
             </dd>
           </div>
         </dl>
@@ -256,8 +268,9 @@
     <footer class="site-footer">
       <div class="wrap">
         <p>
-          A simulator of how dyslexia, Irlen Syndrome, and other reading
-          disorders can make text feel — forked from Victor Widell&rsquo;s 2016
+          A simulator of how Dyslexia, Irlen Syndrome, Low Vision, and other
+          reading disorders can make text feel — forked from Victor
+          Widell&rsquo;s 2016
           demo and rebuilt with accessibility safeguards. The simulated text is
           always available to assistive technology in its original form.
         </p>
