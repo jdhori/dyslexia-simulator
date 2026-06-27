@@ -11,8 +11,8 @@
 // Which region of a letter is masked away.
 type Cut = "top" | "bottom" | "left" | "right" | "sides" | "centerV" | "centerH";
 
-// A deliberately varied assignment — chosen so each letter loses a different
-// part, not a copy of any specific typeface.
+// A deliberately varied assignment — chosen so each letter (and digit) loses a
+// different part, not a copy of any specific typeface.
 const ALPHABET: Record<string, Cut> = {
   a: "bottom",
   b: "left",
@@ -40,6 +40,19 @@ const ALPHABET: Record<string, Cut> = {
   x: "centerV",
   y: "bottom",
   z: "left",
+
+  // Digits get a varied set too, so dates, times and phone numbers fragment
+  // like words instead of all losing the same (fallback) top slice.
+  "0": "sides",
+  "1": "right",
+  "2": "bottom",
+  "3": "centerH",
+  "4": "left",
+  "5": "top",
+  "6": "centerV",
+  "7": "right",
+  "8": "sides",
+  "9": "bottom",
 };
 
 const STYLE_ID = "fragment-mask-styles";
@@ -100,7 +113,7 @@ function rule(selector: string, mask: string): string {
 
 function buildCss(): string {
   const rules: string[] = [];
-  // Fallback for any glyph without a mapped letter (e.g. digits).
+  // Fallback for any glyph without a mapped character (e.g. punctuation, Greek).
   rules.push(rule(".sim-visual.m-fragment .glyph", maskFor("top")));
   for (const [letter, cut] of Object.entries(ALPHABET)) {
     rules.push(

@@ -25,8 +25,11 @@ export interface GlyphModel {
 // attached punctuation, e.g. "around.") is kept whole; the line never breaks
 // inside it, so punctuation can never be orphaned onto its own line.
 const WHITESPACE_OR_TOKEN = /(\s+)|(\S+)/g;
-// Within a token, letter runs (capture 1) become glyphs; everything else
-// (capture 2 — punctuation, digits) stays as plain text beside them.
+// Within a token, letter runs (capture 1) and everything else (capture 2 —
+// digits, punctuation, symbols) all become glyphs. Each letter run is its own
+// WordRun; within the non-letters, every digit joins ONE shared WordRun, so all
+// the digits in a number intermix (e.g. across "1-800-555-1234") while the
+// separators between them stay put.
 const LETTERS_OR_OTHER = /(\p{L}+)|([^\p{L}]+)/gu;
 
 export function buildGlyphModel(container: HTMLElement): GlyphModel {
@@ -62,16 +65,20 @@ export function buildGlyphModel(container: HTMLElement): GlyphModel {
         const letters: string | undefined = partMatch[1];
         const other: string | undefined = partMatch[2];
         if (letters) {
+          // A run of letters scrambles as one word (first/last preserved).
           const run: WordRun = { cells: [] };
-          for (const char of letters) {
-            const cell = createGlyph(char);
-            cells.push(cell);
-            run.cells.push(cell);
-            wordEl.appendChild(cell.el);
-          }
+          appendGlyphs(letters, wordEl, cells, run);
           words.push(run);
         } else if (other) {
-          wordEl.appendChild(document.createTextNode(other));
+          // Every digit in this run joins one shared word, so all the digits in
+          // a number intermix (not just one group); the separators between them
+          // stay put as standalone glyphs.
+          const digitRun: WordRun = { cells: [] };
+          for (const char of other) {
+            const isDigit = char >= "0" && char <= "9";
+            appendGlyphs(char, wordEl, cells, isDigit ? digitRun : null);
+          }
+          if (digitRun.cells.length) words.push(digitRun);
         }
       }
 
@@ -82,6 +89,22 @@ export function buildGlyphModel(container: HTMLElement): GlyphModel {
   }
 
   return { cells, words };
+}
+
+// Wrap each character of `text` in a glyph, collecting them into `cells` and
+// (when given) into a WordRun so the scramble treats them as one word.
+function appendGlyphs(
+  text: string,
+  wordEl: HTMLElement,
+  cells: GlyphCell[],
+  run: WordRun | null,
+): void {
+  for (const char of text) {
+    const cell = createGlyph(char);
+    cells.push(cell);
+    if (run) run.cells.push(cell);
+    wordEl.appendChild(cell.el);
+  }
 }
 
 function createGlyph(char: string): GlyphCell {

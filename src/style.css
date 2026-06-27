@@ -499,6 +499,68 @@ main.wrap {
   line-height: 1.65;
   color: var(--ink-soft);
 }
+.math-note .menu-path {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* --- data-table demo (full width, below the reading/math layout) --- */
+
+.table-demo {
+  margin-top: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+}
+.table-surface {
+  margin-top: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto; /* the table is wide — scroll it on small screens */
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  /* Keep the numeric columns from jittering as the glyph effects animate. */
+  font-variant-numeric: tabular-nums;
+}
+.data-table caption {
+  text-align: left;
+}
+.data-table th,
+.data-table td {
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule);
+}
+/* Greek, date, time and number columns (all but the first and last) read right. */
+.data-table th:not(:first-child):not(:last-child),
+.data-table td:not(:first-child):not(:last-child) {
+  text-align: right;
+}
+.data-table thead th {
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom: 2px solid var(--rule);
+}
+.data-table tbody th {
+  font-weight: 600;
+}
+.data-table tbody tr:hover {
+  background: var(--surface-sunken);
+}
+.data-table tbody tr:last-child th,
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table-note {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
 
 /* --- sections below the fold --- */
 
@@ -623,12 +685,19 @@ main.wrap {
   display: inline-block;
 }
 
-/* Letter flips: the classic confusable pairs are mirrored. */
+/* Letter flips: the classic confusable pairs are mirrored (b d p q g)... */
 .sim-visual.m-flip .glyph[data-char="b"],
 .sim-visual.m-flip .glyph[data-char="d"],
 .sim-visual.m-flip .glyph[data-char="p"],
-.sim-visual.m-flip .glyph[data-char="q"] {
+.sim-visual.m-flip .glyph[data-char="q"],
+.sim-visual.m-flip .glyph[data-char="g"] {
   scale: -1 1;
+}
+/* ...and 6 / 9 rotate into each other. (The digit↔letter look-alikes — 0/O,
+   2/R, 3/E, 5/S, 8/B — are swapped in JS; see the simulator's flip tick.) */
+.sim-visual.m-flip .glyph[data-char="6"],
+.sim-visual.m-flip .glyph[data-char="9"] {
+  rotate: 180deg;
 }
 
 /* Crowding: spacing collapses so words press together. Its Tightness slider

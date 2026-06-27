@@ -32,6 +32,23 @@ const LINE_TOLERANCE = 8;
 /** Block elements that bound a paragraph; letter switching never crosses them. */
 const PARAGRAPH_SELECTOR = "p, li, blockquote, h1, h2, h3, h4, h5, h6";
 
+// "Letter flips" also swaps look-alike digit/letter pairs — the sudden character
+// replacement some readers report, which needs no neighbour to switch with.
+// Case-sensitive, keyed on the displayed character. (6/9 and b d p q g are
+// mirrored/rotated in CSS instead; see style.css.)
+const CONFUSABLES = new Map<string, string>([
+  ["0", "O"], ["O", "0"],
+  ["2", "R"], ["R", "2"],
+  ["3", "E"], ["E", "3"],
+  ["5", "S"], ["S", "5"],
+  ["8", "B"], ["B", "8"],
+]);
+/** Cadence of the confusable swap, and the per-glyph chance to flip each tick. */
+const FLIP_PERIOD_MS = 700;
+const CONFUSABLE_PROB = 0.25;
+/** A single letter — used to keep the cross-line jump on letters only. */
+const LETTER_RE = /\p{L}/u;
+
 interface VerticalNeighbors {
   readonly up?: GlyphCell;
   readonly down?: GlyphCell;
@@ -46,9 +63,15 @@ interface MeasuredGlyph {
 export class Simulator {
   private readonly visualEl: HTMLElement;
   private readonly model: GlyphModel;
+  // Letters only — drives the cross-line jump (the scramble uses model.words,
+  // which also includes digit runs so numbers shuffle).
+  private readonly letterCells: GlyphCell[];
+  // Digit/letter look-alikes the flip mode swaps (a subset of model.cells).
+  private readonly confusableCells: GlyphCell[];
   private srEl: HTMLElement | null = null;
   private scrambleTimer: number | null = null;
   private linejumpTimer: number | null = null;
+  private flipTimer: number | null = null;
   private settings: Settings | null = null;
 
   // Vertical-neighbour map for the line-switching effect, plus its freshness.
@@ -68,6 +91,14 @@ export class Simulator {
     visualEl.classList.add("sim-visual");
     visualEl.setAttribute("aria-hidden", "true");
     this.model = buildGlyphModel(visualEl);
+    // Letters only — model.words now also holds digit runs (so numbers scramble),
+    // but the cross-line jump should still move letters, never digits.
+    this.letterCells = this.model.cells.filter((cell) =>
+      LETTER_RE.test(cell.original),
+    );
+    this.confusableCells = this.model.cells.filter((cell) =>
+      CONFUSABLES.has(cell.original),
+    );
 
     // A width change rewraps the text, which invalidates the neighbour map.
     this.resizeObserver = new ResizeObserver(() => {
@@ -114,6 +145,20 @@ export class Simulator {
         () => this.lineJumpTick(),
         settings.linejumpSpeed,
       );
+    }
+
+    // Flip's confusable swaps (digit ↔ look-alike letter) run whether or not the
+    // scramble is on. With motion they flicker; otherwise a single static swap.
+    // When flip is off, undo any swaps the scramble path didn't already reset.
+    if (settings.flip) {
+      if (motion) {
+        this.flipTimer = window.setInterval(() => this.flipTick(), FLIP_PERIOD_MS);
+      } else {
+        this.restoreConfusables();
+        this.staticFlip();
+      }
+    } else {
+      this.restoreConfusables();
     }
   }
 
@@ -209,7 +254,8 @@ export class Simulator {
 
   private groupByParagraph(): Map<Element, GlyphCell[]> {
     const groups = new Map<Element, GlyphCell[]>();
-    for (const cell of this.model.cells) {
+    // Letters only: the cross-line jump never moves digits or punctuation.
+    for (const cell of this.letterCells) {
       const paragraph = cell.el.closest(PARAGRAPH_SELECTOR) ?? this.visualEl;
       let list = groups.get(paragraph);
       if (!list) {
@@ -260,7 +306,32 @@ export class Simulator {
   }
 
   private restoreAll(): void {
-    for (const word of this.model.words) restoreWord(word);
+    // Reset every glyph — letters, digits, and the confusable swaps alike.
+    restoreWord({ cells: this.model.cells });
+  }
+
+  // --- flip confusables (digit ↔ look-alike letter) ---
+
+  private flipTick(): void {
+    for (const cell of this.confusableCells) {
+      if (Math.random() >= CONFUSABLE_PROB) continue;
+      const pair = CONFUSABLES.get(cell.original);
+      if (pair === undefined) continue;
+      // Toggle between the real character and its look-alike.
+      const showOriginal = (cell.el.textContent ?? "") !== cell.original;
+      setGlyphChar(cell.el, showOriginal ? cell.original : pair);
+    }
+  }
+
+  private staticFlip(): void {
+    for (const cell of this.confusableCells) {
+      const pair = CONFUSABLES.get(cell.original);
+      if (pair !== undefined) setGlyphChar(cell.el, pair);
+    }
+  }
+
+  private restoreConfusables(): void {
+    restoreWord({ cells: this.confusableCells });
   }
 
   private clearTimers(): void {
@@ -271,6 +342,10 @@ export class Simulator {
     if (this.linejumpTimer !== null) {
       clearInterval(this.linejumpTimer);
       this.linejumpTimer = null;
+    }
+    if (this.flipTimer !== null) {
+      clearInterval(this.flipTimer);
+      this.flipTimer = null;
     }
   }
 
@@ -283,6 +358,13 @@ export class Simulator {
     el.insertAdjacentElement("afterend", clone);
     return clone;
   }
+}
+
+// Show a character in a glyph and keep its data-char in sync (so the CSS modes
+// keyed on data-char follow the displayed character).
+function setGlyphChar(el: HTMLElement, char: string): void {
+  el.textContent = char;
+  el.dataset.char = char.toLowerCase();
 }
 
 function nearestByX(line: MeasuredGlyph[], centerX: number): GlyphCell | undefined {

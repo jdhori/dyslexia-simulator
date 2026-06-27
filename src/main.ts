@@ -36,6 +36,16 @@ if (demoEl) {
   applyDemo();
 }
 
+// --- the data-table demo: every effect runs on the table cells too ---
+const tableEl = document.querySelector<HTMLElement>('[data-sim="table"]');
+if (tableEl) {
+  const table = new Simulator(tableEl, { srCopy: true });
+  const applyTable = (): void => table.apply(store.get());
+  store.subscribe(applyTable);
+  onMotionChange(applyTable);
+  applyTable();
+}
+
 // --- math content demo: words scramble, the equation itself stays intact ---
 // `aligned` with a leading `&` on each row left-aligns the lines (so the two
 // text lines sit flush-left rather than centered); the widest line still fills

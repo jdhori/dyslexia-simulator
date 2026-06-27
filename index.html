@@ -121,13 +121,192 @@
             <p class="math-note">
               <strong>Screen readers</strong> can interact with the equation and
               read it aloud: any user can step through it character by character,
-              and capitalization is announced by a shift in tone or pitch.
-              General text-to-speech, by contrast, reads the words and Greek
-              letters but not the math symbols.
+              and capitalization is announced by an audio tone or shift in pitch
+              as it&rsquo;s read, set manually in the screen reader&rsquo;s
+              settings. General text-to-speech, by contrast, reads the words and
+              Greek
+              letters but not the math symbols. To hear the math itself, NVDA
+              needs the
+              <a href="https://nvda-addons.org/addon.php?id=272" rel="noopener"
+                >MathCAT add-on</a
+              >; and if an equation is served as an SVG image (as MathJax
+              sometimes does), it can be unreadable — right-click it (or press
+              <kbd>Shift</kbd> + <kbd>F10</kbd>) and choose
+              <span class="menu-path"
+                >Math Settings → Math Renderer → HTML-CSS</span
+              >
+              so it can be read.
             </p>
           </div>
         </section>
       </div>
+
+      <section id="data" class="table-demo" aria-labelledby="data-heading">
+        <h2 id="data-heading" class="section-heading">Data table</h2>
+        <p class="section-note">
+          Every effect runs on this table too — the headers, group names, Greek
+          letters, dates, times, numbers, and email addresses are all simulated.
+          Nothing here is left alone.
+        </p>
+        <p class="section-note">
+          It also makes the case for <strong>accessible marketing</strong>.
+          Outreach leans on dates, times, phone numbers, and email addresses —
+          content that reaches everyone only when it stays real, selectable text.
+          See the difference for yourself: let your screen reader or
+          text-to-speech read this table, then try the same details saved as an
+          image. Only one of them will read aloud.
+        </p>
+        <div class="table-surface">
+          <table class="data-table" data-sim="table">
+            <caption class="sr-only">
+              Fictional directory of Greek-letter groups, with their uppercase
+              and lowercase Greek letters, a date, a time, a fictional 800
+              number, and an email contact.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Dataset</th>
+                <th scope="col">Uppercase Greek letter</th>
+                <th scope="col">Lowercase Greek letter</th>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col">Fictional 800 number</th>
+                <th scope="col">Company connection</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Alpha Group</th>
+                <td>Α</td><td>α</td><td>03/14/1993</td><td>9:15 AM</td><td>1-800-555-1234</td>
+                <td>contact@alphagroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Beta Group</th>
+                <td>Β</td><td>β</td><td>11/22/1993</td><td>10:30 AM</td><td>1-800-555-2487</td>
+                <td>help@betagroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Gamma Group</th>
+                <td>Γ</td><td>γ</td><td>05/18/1994</td><td>1:45 PM</td><td>1-800-555-3921</td>
+                <td>support@gammagroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Delta Group</th>
+                <td>Δ</td><td>δ</td><td>09/07/1994</td><td>3:20 PM</td><td>1-800-555-4768</td>
+                <td>holla@deltagroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Epsilon Group</th>
+                <td>Ε</td><td>ε</td><td>01/26/1995</td><td>8:05 AM</td><td>1-800-555-5893</td>
+                <td>csupport@epsilongroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Zeta Group</th>
+                <td>Ζ</td><td>ζ</td><td>06/11/1995</td><td>11:10 AM</td><td>1-800-555-6712</td>
+                <td>contact@zetagroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Eta Group</th>
+                <td>Η</td><td>η</td><td>07/22/1996</td><td>2:40 PM</td><td>1-800-555-7349</td>
+                <td>help@etagroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Theta Group</th>
+                <td>Θ</td><td>θ</td><td>12/09/1996</td><td>4:55 PM</td><td>1-800-555-8465</td>
+                <td>support@thetagroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Iota Group</th>
+                <td>Ι</td><td>ι</td><td>09/13/1997</td><td>9:50 AM</td><td>1-800-555-9582</td>
+                <td>holla@iotagroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Kappa Group</th>
+                <td>Κ</td><td>κ</td><td>04/28/1998</td><td>12:25 PM</td><td>1-800-555-2196</td>
+                <td>csupport@kappagroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Lambda Group</th>
+                <td>Λ</td><td>λ</td><td>11/04/1998</td><td>5:10 PM</td><td>1-800-555-3674</td>
+                <td>contact@lambdagroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Mu Group</th>
+                <td>Μ</td><td>μ</td><td>02/16/1999</td><td>8:35 AM</td><td>1-800-555-4289</td>
+                <td>help@mugroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Nu Group</th>
+                <td>Ν</td><td>ν</td><td>03/29/2000</td><td>10:05 AM</td><td>1-800-555-5126</td>
+                <td>support@nugroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Xi Group</th>
+                <td>Ξ</td><td>ξ</td><td>08/21/2000</td><td>1:15 PM</td><td>1-800-555-6048</td>
+                <td>holla@xigroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Omicron Group</th>
+                <td>Ο</td><td>ο</td><td>05/06/2001</td><td>3:45 PM</td><td>1-800-555-7291</td>
+                <td>csupport@omicrongroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Pi Group</th>
+                <td>Π</td><td>π</td><td>10/19/2001</td><td>11:35 AM</td><td>1-800-555-8357</td>
+                <td>contact@pigroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Rho Group</th>
+                <td>Ρ</td><td>ρ</td><td>07/03/2002</td><td>2:05 PM</td><td>1-800-555-9463</td>
+                <td>help@rhogroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Sigma Group</th>
+                <td>Σ</td><td>σ / ς</td><td>12/27/2002</td><td>4:15 PM</td><td>1-800-555-1842</td>
+                <td>support@sigmagroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Tau Group</th>
+                <td>Τ</td><td>τ</td><td>09/30/2003</td><td>9:25 AM</td><td>1-800-555-2975</td>
+                <td>holla@taugroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Upsilon Group</th>
+                <td>Υ</td><td>υ</td><td>04/12/2004</td><td>12:50 PM</td><td>1-800-555-3869</td>
+                <td>csupport@upsilongroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Phi Group</th>
+                <td>Φ</td><td>φ</td><td>11/23/2005</td><td>3:05 PM</td><td>1-800-555-5418</td>
+                <td>contact@phigroup.edu</td>
+              </tr>
+              <tr>
+                <th scope="row">Chi Group</th>
+                <td>Χ</td><td>χ</td><td>06/08/2006</td><td>10:40 AM</td><td>1-800-555-6784</td>
+                <td>help@chigroup.com</td>
+              </tr>
+              <tr>
+                <th scope="row">Psi Group</th>
+                <td>Ψ</td><td>ψ</td><td>01/17/2007</td><td>1:30 PM</td><td>1-800-555-7936</td>
+                <td>support@psigroup.org</td>
+              </tr>
+              <tr>
+                <th scope="row">Omega Group</th>
+                <td>Ω</td><td>ω</td><td>02/24/2008</td><td>5:25 PM</td><td>1-800-555-9876</td>
+                <td>holla@omegagroup.edu</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">
+          The table reads correctly with screen readers and text-to-speech — the
+          real content stays in the accessibility tree, untouched by the visual
+          effects. Greek-letter pronunciation, though, varies from one engine to
+          the next: test your own screen reader or text-to-speech voice
+          (VoiceOver included) against the Greek columns to confirm which letters
+          are spoken aloud.
+        </p>
+      </section>
 
       <div class="duo">
         <!-- Bookmarklet generator is built by src/ui/bookmarklet.ts -->
@@ -180,7 +359,7 @@
               higher sizes evoke a low-vision experience of black text on white,
               where the white overpowers the characters. It was inspired by
               Daniel Britton&rsquo;s <em>Dyslexia</em> typeface, which simulated
-              removing parts of each character to convey the effort of reading.
+              visual perceptual anomalies.
             </dd>
           </div>
           <div>
