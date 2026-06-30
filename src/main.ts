@@ -3,6 +3,7 @@ import "./style.css";
 import { loadSettings, SettingsStore } from "./state";
 import { Simulator } from "./engine/simulator";
 import { MathSimulator } from "./engine/mathSimulator";
+import { LensController } from "./engine/lens";
 import { onMotionChange } from "./engine/motion";
 import { buildControls } from "./ui/controls";
 import { buildBookmarklet } from "./ui/bookmarklet";
@@ -30,7 +31,11 @@ store.subscribe((next) => {
 const demoEl = document.querySelector<HTMLElement>('[data-sim="demo"]');
 if (demoEl) {
   const demo = new Simulator(demoEl, { srCopy: true });
-  const applyDemo = (): void => demo.apply(store.get());
+  const lens = new LensController(demoEl);
+  const applyDemo = (): void => {
+    demo.apply(store.get());
+    lens.apply(store.get());
+  };
   store.subscribe(applyDemo);
   onMotionChange(applyDemo);
   applyDemo();
@@ -40,7 +45,11 @@ if (demoEl) {
 const tableEl = document.querySelector<HTMLElement>('[data-sim="table"]');
 if (tableEl) {
   const table = new Simulator(tableEl, { srCopy: true });
-  const applyTable = (): void => table.apply(store.get());
+  const lens = new LensController(tableEl);
+  const applyTable = (): void => {
+    table.apply(store.get());
+    lens.apply(store.get());
+  };
   store.subscribe(applyTable);
   onMotionChange(applyTable);
   applyTable();
@@ -65,7 +74,11 @@ B_r(x)=\{y \in X \mid d(y, x)<r\} \\
 const mathRoot = document.getElementById("math-root");
 if (mathRoot) {
   const math = new MathSimulator(mathRoot, MATH_LATEX);
-  const applyMath = (): void => math.apply(store.get());
+  const lens = new LensController(mathRoot);
+  const applyMath = (): void => {
+    math.apply(store.get());
+    lens.apply(store.get());
+  };
   store.subscribe(applyMath);
   onMotionChange(applyMath);
   applyMath();

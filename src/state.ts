@@ -1,6 +1,11 @@
 // Application settings: a small immutable store with subscribe + localStorage.
 // Each adjustable mode has its own timing/strength, so controls are per-mode.
 
+/** Which way the black-hole lens reads: peripheral loss vs central loss. */
+export type LensPolarity = "tunnel" | "scotoma";
+
+const LENS_POLARITIES: readonly LensPolarity[] = ["tunnel", "scotoma"];
+
 export interface Settings {
   /** Master switch for the whole effect. */
   readonly enabled: boolean;
@@ -24,6 +29,29 @@ export interface Settings {
   readonly blur: boolean;
   /** Tighten spacing until words touch. */
   readonly crowding: boolean;
+  /** Black-hole lens: a movable field of vision loss that refracts the text. */
+  readonly lens: boolean;
+
+  // --- lens configuration ---
+  /** "tunnel" = clear centre, dark periphery (Retinitis pigmentosa); "scotoma"
+   *  = a dark refracting hole over the gaze (macular-degeneration-like). */
+  readonly lensPolarity: LensPolarity;
+  /** The lens tracks the pointer over the region. */
+  readonly lensFollow: boolean;
+  /** The lens drifts on its own (requires motion). */
+  readonly lensDrift: boolean;
+  /** Bend the text inward (a true black-hole pinch) instead of magnifying it. */
+  readonly lensPull: boolean;
+  /** Render an actual black hole — event horizon + accretion ring — for fun. */
+  readonly lensBlackHole: boolean;
+  /** Radius of the clear tunnel / dark hole, as a fraction of the region. */
+  readonly lensRadius: number;
+  /** Refraction strength at the field boundary, 0..1. */
+  readonly lensRefraction: number;
+  /** Resting centre of the lens, as a 0..1 fraction of width / height. Used
+   *  when neither follow nor drift is driving the position. */
+  readonly lensX: number;
+  readonly lensY: number;
 
   // --- per-mode timing (ms) + strength (0..1) ---
   readonly scrambleSpeed: number;
@@ -67,6 +95,18 @@ const INTENSITY_KEYS = [
   "fragmentIntensity",
 ] as const satisfies readonly (keyof Settings)[];
 
+// The lens numerics run on their own 0..1 scale (radius, refraction, and the
+// resting X/Y position), so they are clamped separately from the mode strengths
+// above — an intensity-range clamp would wrongly cap radius and position.
+const UNIT_MIN = 0;
+const UNIT_MAX = 1;
+const UNIT_KEYS = [
+  "lensRadius",
+  "lensRefraction",
+  "lensX",
+  "lensY",
+] as const satisfies readonly (keyof Settings)[];
+
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
   scramble: true,
@@ -78,6 +118,17 @@ export const DEFAULT_SETTINGS: Settings = {
   fragment: false,
   blur: false,
   crowding: false,
+  lens: false,
+
+  lensPolarity: "tunnel",
+  lensFollow: true,
+  lensDrift: false,
+  lensPull: false,
+  lensBlackHole: false,
+  lensRadius: 0.3,
+  lensRefraction: 0.5,
+  lensX: 0.5,
+  lensY: 0.5,
 
   scrambleSpeed: 500,
   scrambleIntensity: 0.12,
@@ -147,6 +198,14 @@ export function loadSettings(): Settings {
         INTENSITY_MAX,
         DEFAULT_SETTINGS[key],
       );
+    }
+    for (const key of UNIT_KEYS) {
+      merged[key] = clamp(merged[key], UNIT_MIN, UNIT_MAX, DEFAULT_SETTINGS[key]);
+    }
+    // The polarity is a string enum, so a tampered blob could carry anything;
+    // fall back to the default unless it is one of the known values.
+    if (!LENS_POLARITIES.includes(merged.lensPolarity as LensPolarity)) {
+      merged.lensPolarity = DEFAULT_SETTINGS.lensPolarity;
     }
     return merged as unknown as Settings;
   } catch {

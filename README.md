@@ -36,6 +36,9 @@ Each effect is a toggle, and they combine. They’re grouped in the control pane
 - **Blur / focus drift** — focus slips softly in and out.
 - **Crowding** — spacing tightens until words press together.
 
+**Vision field loss**
+- **Black-hole lens** — a movable field of vision loss that refracts (bends) the text at its boundary. **Tunnel** is *Retinitis pigmentosa*: a clear centre with darkness closing in from the periphery, so reading shrinks to a narrow window. **Central scotoma** inverts it into a dark hole over the gaze (closer to macular degeneration than RP, and labelled as such). The field can **follow the pointer**, **drift** on its own (motion-gated), or be placed with **Resting X / Y** sliders; **Field size** and **Refraction** tune it, and **Pull inward** flips the distortion from magnifying the text outward to pinching it into the field edge like a true black hole. For fun, **Render an actual black hole** draws a glowing event horizon and accretion ring where the dark spot sits — pair it with *Pull inward* and the bent text reads as light falling past the horizon.
+
 Every effect carries **its own controls**, shown beneath it while it’s on: a
 **Speed** for the time-based effects (scramble, jumping letters, wobble, blur)
 and a strength slider for the rest — **Intensity**, or **Removal size** for
@@ -110,6 +113,7 @@ src/
     scramble.ts           # typoglycemia permutation
     perception.ts         # the perception-alphabet stylesheet
     simulator.ts          # drives a text region (modes, tick loop, line-switch)
+    lens.ts               # black-hole vision-loss overlay (SVG refraction + veil)
     mathSimulator.ts      # renders + simulates a KaTeX equation
   ui/
     controls.ts           # the control panel

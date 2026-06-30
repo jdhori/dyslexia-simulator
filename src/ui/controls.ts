@@ -20,6 +20,11 @@ type ModeKey = Extract<
   | "wobble"
   | "blur"
   | "crowding"
+  | "lens"
+  | "lensFollow"
+  | "lensDrift"
+  | "lensPull"
+  | "lensBlackHole"
 >;
 
 /** A numeric Settings field exposed as a slider under its mode. */
@@ -32,6 +37,22 @@ interface ParamDef {
   label: string;
   /** "speed" is an ms value; "fraction" is a 0..1 strength shown as a percent. */
   kind: "speed" | "fraction";
+  /** Override the default slider range (used by the 0–100% position sliders). */
+  range?: { min: number; max: number; step: number };
+}
+
+/** A string-enum field rendered as a radio group (currently lens polarity). */
+interface RadioDef {
+  key: "lensPolarity";
+  label: string;
+  options: { value: string; label: string }[];
+}
+
+/** A boolean sub-control shown inside a mode's panel while the mode is on. */
+interface ToggleDef {
+  key: ModeKey;
+  label: string;
+  hint?: string;
 }
 
 interface ModeDef {
@@ -39,6 +60,8 @@ interface ModeDef {
   label: string;
   hint: string;
   params?: ParamDef[];
+  radio?: RadioDef;
+  toggles?: ToggleDef[];
 }
 
 const SPEED = (key: NumericKey, label = "Speed"): ParamDef => ({
@@ -50,6 +73,14 @@ const STRENGTH = (key: NumericKey, label = "Intensity"): ParamDef => ({
   key,
   label,
   kind: "fraction",
+});
+// A 0–100% position slider (the lens's resting centre), distinct from the
+// 2–60% strength sliders above.
+const POSITION = (key: NumericKey, label: string): ParamDef => ({
+  key,
+  label,
+  kind: "fraction",
+  range: { min: 0, max: 100, step: 2 },
 });
 
 // Effects that read as dyslexia itself (letter movement and reversal)...
@@ -112,6 +143,53 @@ const OTHER_MODES: ModeDef[] = [
   },
 ];
 
+// Field-of-vision loss: a movable "black hole" that bends the text at the edge
+// of the failing field. One mechanism, two honest readings of it.
+const VISION_MODES: ModeDef[] = [
+  {
+    key: "lens",
+    label: "Black-hole lens",
+    hint: "A field of vision loss that refracts the text at its boundary. *Tunnel* is Retinitis pigmentosa — a clear centre with darkness closing in from the edges; *Central scotoma* inverts it into a dark hole over your gaze (closer to macular degeneration, not RP).",
+    radio: {
+      key: "lensPolarity",
+      label: "Field shape",
+      options: [
+        { value: "tunnel", label: "Tunnel (RP)" },
+        { value: "scotoma", label: "Central scotoma" },
+      ],
+    },
+    params: [
+      STRENGTH("lensRadius", "Field size"),
+      // Refraction runs to 100% (not the usual 60%) so the text can stretch hard.
+      { ...STRENGTH("lensRefraction", "Refraction"), range: { min: 2, max: 100, step: 2 } },
+      POSITION("lensX", "Resting X"),
+      POSITION("lensY", "Resting Y"),
+    ],
+    toggles: [
+      {
+        key: "lensPull",
+        label: "Pull inward (black hole)",
+        hint: "Bends the text *into* the failing edge like a true black hole, instead of magnifying it outward.",
+      },
+      {
+        key: "lensBlackHole",
+        label: "Render an actual black hole",
+        hint: "Just for fun: draws a glowing event horizon where the dark spot sits. Pair it with *Pull inward* for the full gravitational effect.",
+      },
+      {
+        key: "lensFollow",
+        label: "Follow the pointer",
+        hint: "The field tracks your cursor over the text — whatever you look at is exactly what's hidden.",
+      },
+      {
+        key: "lensDrift",
+        label: "Drift on its own",
+        hint: "The field wanders slowly across the text. Needs motion; the resting position is used otherwise.",
+      },
+    ],
+  },
+];
+
 /** Callbacks that push the current settings back into a control. */
 type Reflector = (settings: Settings) => void;
 
@@ -171,6 +249,9 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
   groups.appendChild(
     buildModeGroup("Other reading disorders", OTHER_MODES, store, reflectors),
   );
+  groups.appendChild(
+    buildModeGroup("Vision field loss", VISION_MODES, store, reflectors),
+  );
 
   if (prefersReducedMotion()) {
     const motionGroup = fieldset("Motion");
@@ -213,10 +294,14 @@ function buildModeGroup(
     );
     modeWrap.appendChild(control.wrapper);
 
-    if (mode.params?.length) {
-      // A fieldset with a visually-hidden legend names this mode's sliders, so a
-      // screen-reader user landing on a "Speed" slider out of spatial context
-      // still knows which effect it belongs to (the visible label stays "Speed").
+    const hasPanel = Boolean(
+      mode.params?.length || mode.radio || mode.toggles?.length,
+    );
+    if (hasPanel) {
+      // A fieldset with a visually-hidden legend names this mode's sub-controls,
+      // so a screen-reader user landing on a "Speed" slider out of spatial
+      // context still knows which effect it belongs to (visible labels are kept
+      // terse). The panel is hidden while the mode is off.
       const params = document.createElement("fieldset");
       params.className = "mode-params";
       params.hidden = !store.get()[mode.key];
@@ -224,7 +309,14 @@ function buildModeGroup(
       legend.className = "sr-only";
       legend.textContent = `${mode.label} settings`;
       params.appendChild(legend);
-      for (const param of mode.params) {
+
+      if (mode.radio) {
+        params.appendChild(buildRadioGroup(mode.radio, store, reflectors));
+      }
+      for (const toggle of mode.toggles ?? []) {
+        params.appendChild(buildToggle(toggle, store, reflectors));
+      }
+      for (const param of mode.params ?? []) {
         params.appendChild(buildParam(param, store, reflectors));
       }
       modeWrap.appendChild(params);
@@ -255,11 +347,16 @@ function buildParam(
   const format = (value: number): string =>
     isFraction ? `${value}%` : `${value} ms`;
 
-  const control = slider({
-    label: param.label,
+  const range = param.range ?? {
     min: isFraction ? 2 : 50,
     max: isFraction ? 60 : 2000,
     step: isFraction ? 2 : 50,
+  };
+  const control = slider({
+    label: param.label,
+    min: range.min,
+    max: range.max,
+    step: range.step,
     value: toSlider(store.get()),
     format,
     onInput: (value) =>
@@ -268,6 +365,72 @@ function buildParam(
 
   reflectors.push((s) => control.set(toSlider(s)));
   return control.wrapper;
+}
+
+// A sub-toggle shown inside a mode's panel (e.g. the lens's follow/drift modes).
+function buildToggle(
+  toggle: ToggleDef,
+  store: SettingsStore,
+  reflectors: Reflector[],
+): HTMLElement {
+  const control = checkbox(
+    toggle.label,
+    store.get()[toggle.key],
+    (value) => store.update({ [toggle.key]: value } as Partial<Settings>),
+    toggle.hint,
+  );
+  reflectors.push((s) => {
+    control.input.checked = s[toggle.key];
+  });
+  return control.wrapper;
+}
+
+// A radio group for a string-enum setting (the lens polarity). Native radios in
+// a shared group inside a labelled fieldset, so arrow-key selection and the
+// group name are conveyed to assistive tech for free.
+function buildRadioGroup(
+  def: RadioDef,
+  store: SettingsStore,
+  reflectors: Reflector[],
+): HTMLElement {
+  const group = document.createElement("fieldset");
+  group.className = "radiogroup";
+  const legend = document.createElement("legend");
+  legend.className = "radiogroup-legend";
+  legend.textContent = def.label;
+  group.appendChild(legend);
+
+  const name = nextId("radio");
+  const inputs: { value: string; input: HTMLInputElement }[] = [];
+  for (const option of def.options) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "radio";
+
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = name;
+    input.id = nextId("rad");
+    input.value = option.value;
+    input.checked = store.get()[def.key] === option.value;
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        store.update({ [def.key]: option.value } as Partial<Settings>);
+      }
+    });
+
+    const labelEl = document.createElement("label");
+    labelEl.setAttribute("for", input.id);
+    labelEl.textContent = option.label;
+
+    wrapper.append(input, labelEl);
+    group.appendChild(wrapper);
+    inputs.push({ value: option.value, input });
+  }
+
+  reflectors.push((s) => {
+    for (const item of inputs) item.input.checked = s[def.key] === item.value;
+  });
+  return group;
 }
 
 // --- small accessible control builders ---
