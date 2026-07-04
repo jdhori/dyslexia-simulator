@@ -52,8 +52,6 @@ const DRIFT_Y = 0.26;
 const DRIFT_FREQ_X = 0.0004;
 const DRIFT_FREQ_Y = 0.0005;
 const DRIFT_PHASE_Y = 1;
-/** Width of the Gaussian displacement ring, relative to the field radius. */
-const RING_SIGMA_RATIO = 0.42;
 /** Per-frame easing toward the target position (1 = instant). */
 const EASE = 0.18;
 /** Within this many px of target we stop the idle loop to spare the CPU. */
@@ -99,6 +97,9 @@ export class LensController {
   private readonly feDisplace: SVGFEDisplacementMapElement;
   private readonly filterId: string;
 
+  private readonly canvas: HTMLCanvasElement;
+  private readonly ctx: CanvasRenderingContext2D | null;
+
   private settings: Settings | null = null;
   private readonly resizeObserver: ResizeObserver;
 
@@ -135,6 +136,18 @@ export class LensController {
     veil.setAttribute("aria-hidden", "true");
     host.appendChild(veil);
     this.veil = veil;
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "lens-canvas";
+    canvas.style.position = "absolute";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.pointerEvents = "none";
+    veil.appendChild(canvas);
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
 
     // Build the filter chain: a full-region neutral-grey flood (zero
     // displacement) with the small bulge composited on top, then displacement.
@@ -253,6 +266,15 @@ export class LensController {
     const rect = this.region.getBoundingClientRect();
     this.boxW = Math.max(1, rect.width);
     this.boxH = Math.max(1, rect.height);
+    if (this.canvas) {
+      const dpr = window.devicePixelRatio || 1;
+      this.canvas.width = this.boxW * dpr;
+      this.canvas.height = this.boxH * dpr;
+      if (this.ctx) {
+        this.ctx.resetTransform();
+        this.ctx.scale(dpr, dpr);
+      }
+    }
   }
 
   // Build (or rebuild) the small bulge image — a square just big enough to hold
@@ -297,7 +319,11 @@ export class LensController {
   // --- movement ---
 
   private needsLoop(s: Settings): boolean {
-    return (s.lensFollow && this.pointerInside) || (s.lensDrift && isMotionAllowed());
+    return (
+      (s.lensFollow && this.pointerInside) ||
+      (s.lensDrift && isMotionAllowed()) ||
+      (s.lensBlackHole && s.enabled && !s.reveal && s.lens)
+    );
   }
 
   private syncListeners(s: Settings): void {
@@ -367,16 +393,226 @@ export class LensController {
     this.curY += (this.targetY - this.curY) * ease;
     this.place(this.curX, this.curY);
 
+    if (this.settings.lensBlackHole) {
+      this.drawBlackHole(performance.now());
+    } else {
+      this.clearCanvas();
+    }
+
     const settled =
       Math.abs(this.targetX - this.curX) < SETTLE_PX &&
       Math.abs(this.targetY - this.curY) < SETTLE_PX;
-    // Keep animating while drift runs or the pointer is live; otherwise let the
-    // position settle and idle.
+    // Keep animating while drift runs or the pointer is live, or when the
+    // animated black hole is visible, or before settling.
     const keepGoing =
       (this.settings.lensDrift && isMotionAllowed()) ||
       (this.settings.lensFollow && this.pointerInside) ||
+      this.settings.lensBlackHole ||
       !settled;
     if (keepGoing) this.start();
+    else this.stop();
+  }
+
+  private drawBlackHole(now: number): void {
+    if (!this.ctx || !this.settings) return;
+    const ctx = this.ctx;
+    const w = this.boxW;
+    const h = this.boxH;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+
+    // Gaze position in pixels
+    const cx = this.curX;
+    const cy = this.curY;
+
+    // Radius of the black hole
+    const R = Math.max(8, this.settings.lensRadius * Math.min(w, h));
+    const r_h = R * 0.55; // Horizon shadow radius
+    const r_in = R * 0.65; // Inner disk edge
+    const r_out = R * 1.7; // Outer disk edge (more compact horizontally)
+
+    const t = now * 0.001; // time in seconds
+
+    if (this.settings.lensPolarity === "tunnel") {
+      // --- INSIDE VIEW (Looking out from inside the black hole throat) ---
+
+      // 1. Draw solid dark background over the entire canvas (representing the tunnel walls)
+      ctx.fillStyle = "rgba(12, 12, 12, 0.96)";
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Punch a clear hole in the center for the tunnel aperture
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      const clearGlow = ctx.createRadialGradient(cx, cy, r_h * 0.8, cx, cy, r_h * 1.05);
+      clearGlow.addColorStop(0.0, "rgba(0, 0, 0, 1)"); // fully clear center
+      clearGlow.addColorStop(0.85, "rgba(0, 0, 0, 1)");
+      clearGlow.addColorStop(1.0, "rgba(0, 0, 0, 0)"); // fade to opaque black
+      ctx.fillStyle = clearGlow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r_h * 1.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 3. Draw a circular accretion disk wrapping around the throat boundary
+      ctx.save();
+      ctx.lineCap = "round";
+      const numOrbits = 18;
+      for (let i = 0; i < numOrbits; i++) {
+        const f = i / (numOrbits - 1 || 1);
+        const r = r_h * 1.01 + (r_h * 0.42) * f; // concentric orbits around the exit
+
+        // Dimmer as they extend further into the dark outer field
+        const opacity = (1.0 - f * 0.75) * 0.5;
+
+        // Transition from hot white-yellow close to throat, to warm orange in the periphery
+        const grad = ctx.createRadialGradient(cx, cy, r_h, cx, cy, r_h * 1.5);
+        grad.addColorStop(0.0, `rgba(255, 255, 255, ${opacity * 1.2})`);
+        grad.addColorStop(0.15, `rgba(255, 230, 150, ${opacity * 1.0})`);
+        grad.addColorStop(0.5, `rgba(240, 120, 0, ${opacity * 0.7})`);
+        grad.addColorStop(1.0, "rgba(100, 20, 0, 0)");
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.0 + (1.0 - f) * 2.2;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+
+        const speed = 40 * Math.pow(r_h / r, 1.5);
+        ctx.setLineDash([35 + f * 20, 55 + f * 30]);
+        ctx.lineDashOffset = -t * speed - (i * 12);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 4. Throat boundary lensing glow (Einstein ring-like boundary)
+      const throatGlow = ctx.createRadialGradient(cx, cy, r_h * 0.88, cx, cy, r_h * 1.15);
+      throatGlow.addColorStop(0.0, "rgba(255, 255, 255, 0)");
+      throatGlow.addColorStop(0.4, "rgba(255, 220, 120, 0.45)");
+      throatGlow.addColorStop(0.8, "rgba(255, 100, 0, 0.2)");
+      throatGlow.addColorStop(1.0, "rgba(255, 50, 0, 0)");
+      ctx.fillStyle = throatGlow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r_h * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+    } else {
+      // --- OUTSIDE VIEW (Standard Scotoma: central event horizon + accretion disk) ---
+
+      // 1. Warm Redshift Glow (soft background, replaces dark vignette to avoid eye-socket look)
+      const redshift = ctx.createRadialGradient(cx, cy, r_h, cx, cy, r_out * 1.4);
+      redshift.addColorStop(0, "rgba(220, 60, 0, 0.16)");
+      redshift.addColorStop(0.4, "rgba(140, 20, 0, 0.08)");
+      redshift.addColorStop(1.0, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = redshift;
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Draw Back Arches (Lensed back-top and back-bottom of the disk orbits)
+      ctx.save();
+      ctx.lineCap = "round";
+
+      const N = 26; // Number of concentric gas orbits / filaments
+      for (let i = 0; i < N; i++) {
+        const f = i / (N - 1 || 1);
+        const r = r_in + (r_out - r_in) * f;
+
+        // Filaments get dimmer and redder as they go outward
+        const opacity = (1.0 - f * 0.7) * 0.38;
+
+        // Linear gradient that fades to transparent at left/right ends so orbits dissolve
+        // and do not meet at a sharp point (breaks the eye-shape corner!)
+        const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+        grad.addColorStop(0.0, "rgba(255, 100, 0, 0)"); // fade out left
+        grad.addColorStop(0.16, `rgba(255, 245, 220, ${opacity * 1.6})`); // bright white-hot Doppler-beamed left
+        grad.addColorStop(0.35, `rgba(255, 150, 0, ${opacity})`);
+        grad.addColorStop(0.65, `rgba(200, 60, 0, ${opacity * 0.55})`);
+        grad.addColorStop(0.85, `rgba(150, 20, 0, ${opacity * 0.25})`);
+        grad.addColorStop(1.0, "rgba(80, 0, 0, 0)"); // fade out right
+
+        ctx.strokeStyle = grad;
+
+        // Keplerian speed: inner orbits rotate faster (v ~ 1 / r^1.5)
+        const speed = 45 * Math.pow(r_in / r, 1.5);
+
+        // Lensed upper arch height (flatter curve)
+        const r_top = r_h * 1.05 + (r - r_in) * 0.32;
+        ctx.lineWidth = 1.0 + (1.0 - f) * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(cx - r, cy);
+        ctx.bezierCurveTo(cx - r * 0.5, cy - r_top, cx + r * 0.5, cy - r_top, cx + r, cy);
+        ctx.setLineDash([30 + f * 20, 50 + f * 30]);
+        ctx.lineDashOffset = -t * speed - (i * 12);
+        ctx.stroke();
+
+        // Lensed lower arch height (secondary image, closer to horizon)
+        const r_bottom = r_h * 0.95 + (r - r_in) * 0.1;
+        ctx.lineWidth = 0.8 + (1.0 - f) * 1.0;
+        ctx.beginPath();
+        ctx.moveTo(cx - r, cy);
+        ctx.bezierCurveTo(cx - r * 0.5, cy + r_bottom, cx + r * 0.5, cy + r_bottom, cx + r, cy);
+        ctx.setLineDash([20 + f * 15, 40 + f * 25]);
+        ctx.lineDashOffset = -t * speed * 0.85 - (i * 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 3. Einstein Ring / Gravitational lensing boundary glow
+      const einsteinGlow = ctx.createRadialGradient(cx, cy, r_h * 0.85, cx, cy, r_h * 1.25);
+      einsteinGlow.addColorStop(0.0, "rgba(0, 0, 0, 1)");
+      einsteinGlow.addColorStop(0.15, "rgba(0, 0, 0, 1)");
+      einsteinGlow.addColorStop(0.45, "rgba(255, 230, 150, 0.95)"); // Bright golden ring
+      einsteinGlow.addColorStop(0.65, "rgba(255, 120, 0, 0.65)");
+      einsteinGlow.addColorStop(1.0, "rgba(255, 60, 0, 0)");
+
+      ctx.fillStyle = einsteinGlow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r_h * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Event Horizon (Pitch-black core)
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(cx, cy, r_h, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. Draw Front Accretion Disk Filaments (Passing in front of the black hole)
+      ctx.save();
+      ctx.lineCap = "round";
+      for (let i = 0; i < N; i++) {
+        const f = i / (N - 1 || 1);
+        const r = r_in + (r_out - r_in) * f;
+
+        const opacity = (1.0 - f * 0.7) * 0.45;
+
+        const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+        grad.addColorStop(0.0, "rgba(255, 100, 0, 0)");
+        grad.addColorStop(0.16, `rgba(255, 245, 220, ${opacity * 1.8})`); // Doppler beaming
+        grad.addColorStop(0.35, `rgba(255, 150, 0, ${opacity})`);
+        grad.addColorStop(0.65, `rgba(200, 60, 0, ${opacity * 0.6})`);
+        grad.addColorStop(0.85, `rgba(150, 20, 0, ${opacity * 0.3})`);
+        grad.addColorStop(1.0, "rgba(80, 0, 0, 0)");
+
+        ctx.strokeStyle = grad;
+
+        const speed = 45 * Math.pow(r_in / r, 1.5);
+        const r_front = r * 0.13; // flatter tilt height (approx 7.5 degrees)
+
+        ctx.lineWidth = 1.2 + (1.0 - f) * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(cx - r, cy);
+        ctx.bezierCurveTo(cx - r * 0.5, cy + r_front, cx + r * 0.5, cy + r_front, cx + r, cy);
+        ctx.setLineDash([40 + f * 25, 60 + f * 35]);
+        ctx.lineDashOffset = -t * speed * 1.05 - (i * 10);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  private clearCanvas(): void {
+    if (this.ctx) {
+      this.ctx.clearRect(0, 0, this.boxW, this.boxH);
+    }
   }
 
   private place(x: number, y: number): void {
@@ -433,9 +669,11 @@ function buildDisplacementMap(side: number, radius: number): string {
   const half = side / 2;
   const fadeStart = half * EDGE_FADE_START;
   const fadeEnd = half * EDGE_FADE_END;
-  // Width of the soft ring; the bump is a Gaussian centred on `radius`.
-  const sigma = radius * RING_SIGMA_RATIO;
-  const twoSigmaSq = 2 * sigma * sigma;
+
+  // Let the Schwarzschild radius rs be 0.45 * radius, which aligns the horizon
+  // inside the visual shadow drawn on the canvas.
+  const rs = radius * 0.45;
+  const eps = rs * 0.05; // Small offset to prevent division-by-zero at rs
 
   for (let y = 0; y < side; y++) {
     for (let x = 0; x < side; x++) {
@@ -443,7 +681,18 @@ function buildDisplacementMap(side: number, radius: number): string {
       const ox = x - half;
       const oy = y - half;
       const dist = Math.hypot(ox, oy) || 1;
-      let bump = Math.exp(-((dist - radius) * (dist - radius)) / twoSigmaSq);
+
+      let bump = 0;
+      if (dist > rs) {
+        // Physical refractive index model: n(r) = (1 - rs / r)^-1 = r / (r - rs)
+        // Deflection / inward pull is proportional to (n(r) - 1) = rs / (r - rs)
+        bump = (rs / (dist - rs + eps)) * 0.85;
+      } else {
+        // Inside the horizon, light is completely captured. We apply a large
+        // inward deflection to pull everything into the horizon.
+        bump = 12.0;
+      }
+
       // Taper the ring to zero before the square's edge → seamless with flood.
       if (dist >= fadeEnd) bump = 0;
       else if (dist > fadeStart) {
