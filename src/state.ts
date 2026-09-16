@@ -6,6 +6,22 @@ export type LensPolarity = "tunnel" | "scotoma";
 
 const LENS_POLARITIES: readonly LensPolarity[] = ["tunnel", "scotoma"];
 
+/** Colour vision deficiency to simulate on the image gallery. */
+export type ColorVision =
+  | "none"
+  | "protanopia"
+  | "deuteranopia"
+  | "tritanopia"
+  | "achromatopsia";
+
+export const COLOR_VISIONS: readonly ColorVision[] = [
+  "none",
+  "protanopia",
+  "deuteranopia",
+  "tritanopia",
+  "achromatopsia",
+];
+
 export interface Settings {
   /** Master switch for the whole effect. */
   readonly enabled: boolean;
@@ -52,6 +68,10 @@ export interface Settings {
    *  when neither follow nor drift is driving the position. */
   readonly lensX: number;
   readonly lensY: number;
+
+  // --- colour vision ---
+  /** Which colour vision deficiency the image gallery is filtered through. */
+  readonly colorVision: ColorVision;
 
   // --- per-mode timing (ms) + strength (0..1) ---
   readonly scrambleSpeed: number;
@@ -130,6 +150,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lensX: 0.5,
   lensY: 0.5,
 
+  colorVision: "none",
+
   scrambleSpeed: 500,
   scrambleIntensity: 0.12,
   linejumpSpeed: 600,
@@ -206,6 +228,9 @@ export function loadSettings(): Settings {
     // fall back to the default unless it is one of the known values.
     if (!LENS_POLARITIES.includes(merged.lensPolarity as LensPolarity)) {
       merged.lensPolarity = DEFAULT_SETTINGS.lensPolarity;
+    }
+    if (!COLOR_VISIONS.includes(merged.colorVision as ColorVision)) {
+      merged.colorVision = DEFAULT_SETTINGS.colorVision;
     }
     return merged as unknown as Settings;
   } catch {

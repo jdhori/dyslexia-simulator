@@ -4,8 +4,10 @@ import { loadSettings, SettingsStore } from "./state";
 import { Simulator } from "./engine/simulator";
 import { MathSimulator } from "./engine/mathSimulator";
 import { LensController } from "./engine/lens";
+import { ColorVisionSimulator } from "./engine/colorVision";
 import { onMotionChange } from "./engine/motion";
 import { buildControls } from "./ui/controls";
+import { buildColorVisionControls } from "./ui/colorVisionControls";
 import { buildBookmarklet } from "./ui/bookmarklet";
 import { buildThemeToggle } from "./ui/themeToggle";
 import { announce } from "./ui/announce";
@@ -84,9 +86,21 @@ if (mathRoot) {
   applyMath();
 }
 
+// --- colour vision demo: the sample images are filtered per deficiency ---
+const cvdSection = document.querySelector<HTMLElement>(".cvd-demo");
+if (cvdSection) {
+  const colorVision = new ColorVisionSimulator(cvdSection);
+  const applyColorVision = (): void => colorVision.apply(store.get());
+  store.subscribe(applyColorVision);
+  applyColorVision();
+}
+
 // --- UI panels ---
 const controlsRoot = document.getElementById("controls-root");
 if (controlsRoot) buildControls(controlsRoot, store);
+
+const cvdControlsRoot = document.getElementById("cvd-controls-root");
+if (cvdControlsRoot) buildColorVisionControls(cvdControlsRoot, store);
 
 const bookmarkletRoot = document.getElementById("bookmarklet-root");
 if (bookmarkletRoot) buildBookmarklet(bookmarkletRoot, store);

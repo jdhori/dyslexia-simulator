@@ -8,6 +8,7 @@
 
 import { prefersReducedMotion, setMotionOverride } from "../engine/motion";
 import type { Settings, SettingsStore } from "../state";
+import { buildInfoDisclosure, setEmphasisContent } from "./infoDisclosure";
 
 type ModeKey = Extract<
   keyof Settings,
@@ -59,6 +60,8 @@ interface ModeDef {
   key: ModeKey;
   label: string;
   hint: string;
+  /** Longer description shown by the mode's "i" information button. */
+  info?: string;
   params?: ParamDef[];
   radio?: RadioDef;
   toggles?: ToggleDef[];
@@ -89,6 +92,8 @@ const DYSLEXIA_MODES: ModeDef[] = [
     key: "scramble",
     label: "Letter scramble",
     hint: "Inner letters shuffle; first and last stay put.",
+    info:
+      "The inner letters of a word are shuffled while the first and last letters stay put. This is the original 2016 effect. You can also include the first and last letters for a harder, full anagram.",
     params: [SPEED("scrambleSpeed"), STRENGTH("scrambleIntensity")],
   },
   {
@@ -100,17 +105,23 @@ const DYSLEXIA_MODES: ModeDef[] = [
     key: "flip",
     label: "Letter flips (b d p q)",
     hint: "The classic mirror-image confusions.",
+    info:
+      "The classic confusable pairs are mirrored or flipped, the reversal errors many beginning and dyslexic readers report.",
   },
   {
     key: "linejump",
     label: "Jumping letters",
     hint: "Letters switch places with the word directly above or below (never with empty space). Needs motion.",
+    info:
+      "Letters switch places with the word directly above or below them, so the eye keeps losing its place between rows — an experience dyslexic readers have reported. Letters with nothing above or below — at the start or end of the text, or beside a paragraph gap — stay put, because there is nothing to switch with.",
     params: [SPEED("linejumpSpeed"), STRENGTH("linejumpIntensity")],
   },
   {
     key: "fragment",
     label: "Letter fragments",
     hint: "Removes part of each letter, so words must be decoded slowly — an approximation of Daniel Britton's *Dyslexia* typeface.",
+    info:
+      "Part of every letter is removed, so each word must be decoded slowly. Lower removal sizes echo the dyslexic effort of decoding; higher sizes evoke a low-vision experience of black text on white, where the white overpowers the characters. It was inspired by Daniel Britton's *Dyslexia* typeface, which simulated visual perceptual anomalies.",
     params: [STRENGTH("fragmentIntensity", "Removal size")],
   },
 ];
@@ -121,24 +132,32 @@ const OTHER_MODES: ModeDef[] = [
     key: "perception",
     label: "Perception alphabet",
     hint: "How some people with learning or developmental disabilities perceive characters — letters mirror, tilt, drift and fade.",
+    info:
+      "A per-letter distortion — mirroring, rotation, baseline drift, and fading — that approximates how some people with learning or developmental disabilities describe *seeing* characters: unstable shapes that shift and reverse rather than sitting still.",
     params: [STRENGTH("perceptionIntensity")],
   },
   {
     key: "wobble",
     label: "Visual wobble",
     hint: "A reading disorder some people experience — letters tremble and never hold still. Needs motion.",
+    info:
+      "Letters drift and tremble, so the line never holds still — a reading disorder some people experience. The Speed and Intensity sliders show the range of movement different readers describe, and how distracting it is to read against.",
     params: [SPEED("wobbleSpeed"), STRENGTH("wobbleIntensity")],
   },
   {
     key: "blur",
     label: "Blur / focus drift",
     hint: "Focus slips in and out.",
+    info:
+      "Focus slips in and out — the way tired eyes lose a sharp edge, the way some people with low vision experience text on white backgrounds, and the way text can look before someone starts wearing glasses.",
     params: [SPEED("blurSpeed"), STRENGTH("blurIntensity")],
   },
   {
     key: "crowding",
     label: "Crowding",
     hint: "Spacing tightens until words touch.",
+    info:
+      "Spacing tightens until letters and words press together and the white “rivers” between words vanish — a reading experience described by people with dyslexia, Irlen Syndrome, and other reading disorders, and sometimes by those prior to wearing glasses.",
     params: [STRENGTH("crowdingIntensity", "Tightness")],
   },
 ];
@@ -150,6 +169,8 @@ const VISION_MODES: ModeDef[] = [
     key: "lens",
     label: "Black-hole lens",
     hint: "A field of vision loss that refracts the text at its boundary. *Tunnel* is Retinitis pigmentosa — a clear centre with darkness closing in from the edges; *Central scotoma* inverts it into a dark hole over your gaze (closer to macular degeneration, not RP).",
+    info:
+      "A movable field of vision loss that bends, or “refracts,” the text at its edge. *Tunnel* is the Retinitis pigmentosa experience: peripheral vision is lost first, so a clear window survives at the centre while darkness closes in from the edges — reading shrinks to scanning a narrow tunnel. *Central scotoma* inverts it into a dark hole that sits over wherever you look, hiding the very thing you are trying to read; that pattern is closer to macular degeneration than to RP, and is labelled as such. The refraction can *magnify* the text outward or, with *Pull inward*, pinch it into the field edge like a true black hole. Because the loss moves with the eye, the lens can follow your pointer, drift on its own, or be placed with the X / Y sliders. There is also a *for-fun* option to render an actual black hole — a glowing event horizon and accretion ring — where the dark spot sits.",
     radio: {
       key: "lensPolarity",
       label: "Field shape",
@@ -253,6 +274,7 @@ export function buildControls(root: HTMLElement, store: SettingsStore): void {
     buildModeGroup("Vision field loss", VISION_MODES, store, reflectors),
   );
 
+
   if (prefersReducedMotion()) {
     const motionGroup = fieldset("Motion");
     const note = document.createElement("p");
@@ -292,6 +314,15 @@ function buildModeGroup(
       (value) => store.update({ [mode.key]: value } as Partial<Settings>),
       mode.hint,
     );
+    if (mode.info) {
+      const info = buildInfoDisclosure(mode.label, mode.info);
+      info.button.classList.add("check-info-btn");
+      control.wrapper.classList.add("check--info");
+      // The button sits beside the label (third grid column); the hint and
+      // then the panel follow beneath, so the panel opens under the mode.
+      control.wrapper.querySelector("label")?.after(info.button);
+      control.wrapper.append(info.panel);
+    }
     modeWrap.appendChild(control.wrapper);
 
     const hasPanel = Boolean(
@@ -455,21 +486,6 @@ interface CheckboxControl {
   input: HTMLInputElement;
 }
 
-// Render a hint, turning *emphasis* into <em>. Built as DOM nodes (never
-// innerHTML) so it stays safe and is read normally by screen readers.
-function setHintContent(el: HTMLElement, hint: string): void {
-  el.replaceChildren();
-  hint.split(/\*([^*]+)\*/g).forEach((part, index) => {
-    if (index % 2 === 1) {
-      const em = document.createElement("em");
-      em.textContent = part;
-      el.appendChild(em);
-    } else if (part) {
-      el.appendChild(document.createTextNode(part));
-    }
-  });
-}
-
 function checkbox(
   label: string,
   checked: boolean,
@@ -495,7 +511,7 @@ function checkbox(
     const hintEl = document.createElement("span");
     hintEl.className = "check-hint";
     hintEl.id = `${input.id}-hint`;
-    setHintContent(hintEl, hint);
+    setEmphasisContent(hintEl, hint);
     input.setAttribute("aria-describedby", hintEl.id);
     wrapper.appendChild(hintEl);
   }

@@ -275,6 +275,17 @@ main.wrap {
   font-size: 0.82rem;
   color: var(--ink-soft);
 }
+/* A mode with an "i" information button: the button takes a third column
+   beside the label, and its panel opens beneath the hint (see .info-panel). */
+.check--info {
+  grid-template-columns: auto 1fr auto;
+}
+.check--info .check-hint {
+  grid-column: 2 / -1;
+}
+.check--info .info-panel {
+  grid-column: 2 / -1;
+}
 
 .control-master label {
   font-weight: 600;
@@ -587,6 +598,69 @@ main.wrap {
 .data-table tbody tr:last-child td {
   border-bottom: 0;
 }
+/* Narrow screens: each row becomes a stacked card. The header row is hidden
+   visually only (kept in the accessibility tree so column headers still
+   announce), and each cell prints its own column label from data-label. */
+@media (max-width: 52rem) {
+  .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table th,
+  .data-table td {
+    display: block;
+  }
+  .data-table tbody tr {
+    padding: 0.35rem 0 0.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .data-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .data-table tbody th {
+    padding: 0.5rem 1rem 0.35rem;
+    font-size: 1.05rem;
+    background: var(--surface-sunken);
+    border-bottom: 0;
+  }
+  .data-table td {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 40%) 1fr;
+    gap: 0.75rem;
+    padding: 0.3rem 1rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    border-bottom: 0;
+  }
+  .data-table td::before {
+    /* The "/ ''" alternative text hides this from assistive tech: the real
+       column header is still associated via <thead>, so it would otherwise be
+       announced twice. */
+    content: attr(data-label) / "";
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  /* Every value reads left in the stacked layout; the right-align rule above is
+     for scanning columns, which no longer exist here. */
+  .data-table td:not(:first-child):not(:last-child) {
+    text-align: left;
+  }
+  .data-table tbody tr:hover {
+    background: transparent;
+  }
+}
+
 .table-note {
   margin: 1rem 0 0;
   font-size: 0.9rem;
@@ -594,27 +668,185 @@ main.wrap {
   color: var(--ink-soft);
 }
 
+/* --- colour vision demo --- */
+
+.cvd-demo {
+  margin-top: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+  padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
+  border-top: 1px solid var(--rule);
+}
+/* The chooser: one radio per deficiency, each with an "i" disclosure whose
+   panel opens directly beneath its own option (so magnifier users find it).
+   .info-btn / .info-panel are shared with the sidebar modes. */
+.cvd-controls {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.25rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  min-inline-size: 0;
+}
+.cvd-controls__legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+}
+.cvd-columns {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) 1fr;
+  gap: 0.75rem 2rem;
+  align-items: start;
+}
+@media (max-width: 40rem) {
+  .cvd-columns {
+    grid-template-columns: 1fr;
+  }
+}
+.cvd-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.cvd-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  padding: 0.15rem 0;
+}
+.cvd-option input {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0;
+}
+.cvd-option label {
+  font-size: 1rem;
+  cursor: pointer;
+}
+/* The shared explanation, to the right of the list (beneath it when narrow).
+   It stays out of the list's grid column so opening it never reflows the
+   radios; a min-height keeps the section from jumping as it opens and closes. */
+.cvd-detail {
+  padding: 0.85rem 1.1rem 1rem;
+  background: var(--surface-sunken);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+/* Empty = closed. Collapse it visually but keep it in the accessibility tree
+   (no display:none) so the live region announces the next opening. */
+.cvd-detail.is-empty {
+  padding: 0;
+  border: 0;
+}
+.cvd-detail__heading {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.cvd-detail__text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.info-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font: inherit;
+  border-radius: 50%;
+  border: 2px solid var(--accent-ink);
+  background: transparent;
+  color: var(--accent-ink);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.info-btn__icon {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.info-btn:hover,
+.info-btn[aria-expanded="true"] {
+  background: var(--accent-ink);
+  color: var(--surface);
+}
+.info-panel {
+  grid-column: 2 / -1;
+  margin: 0.35rem 0 0.4rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+/* Empty = closed; collapsed visually, never display:none (see above). */
+.info-panel:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cvd-status {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.cvd-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: clamp(1rem, 0.75rem + 1vw, 1.75rem);
+}
+.cvd-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cvd-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff; /* the sample images are white-backed; keep them so in dark */
+  transition: filter 200ms ease;
+}
+.cvd-figure figcaption {
+  padding: 0.85rem 1rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.cvd-figure figcaption strong {
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvd-figure img {
+    transition: none;
+  }
+}
+
+
 /* --- sections below the fold --- */
 
-.duo,
+#bookmarklet,
 #credits {
   margin-top: clamp(2.5rem, 2rem + 3vw, 4.5rem);
   padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
   border-top: 1px solid var(--rule);
 }
 
-/* "Take it to any page" and "About the modes" sit side by side, 50/50. */
-.duo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(1.5rem, 1rem + 2vw, 3rem);
-  align-items: start;
-}
-@media (max-width: 52rem) {
-  .duo {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* --- bookmarklet --- */
 
@@ -659,21 +891,7 @@ main.wrap {
   align-self: flex-start;
 }
 
-/* --- about / glossary --- */
-
-.mode-glossary {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1rem 2rem;
-}
-.mode-glossary dt {
-  font-weight: 700;
-}
-.mode-glossary dd {
-  margin: 0.2rem 0 0;
-  color: var(--ink-soft);
-}
+/* --- credits --- */
 .credits {
   padding-left: 1.1rem;
   color: var(--ink-soft);
