@@ -2,7 +2,7 @@
   "name": "dyslexia-simulator",
   "private": true,
   "version": "0.1.0",
-  "description": "An interactive, accessible simulator of how dyslexia, Irlen Syndrome, and other reading disorders can make text feel. A modern TypeScript fork of Victor Widell's 2016 demo.",
+  "description": "Reading Disorders & Color Blindness Simulation: an interactive, accessible demo of how dyslexia, Irlen Syndrome, other reading disorders, and colour vision deficiency change what people see. A modern TypeScript fork of Victor Widell's 2016 demo.",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -13,7 +13,9 @@
     "a11y",
     "typoglycemia",
     "simulation",
-    "empathy"
+    "empathy",
+    "color-blindness",
+    "colour-vision-deficiency"
   ],
   "scripts": {
     "dev": "vite",
