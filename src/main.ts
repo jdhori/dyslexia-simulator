@@ -10,7 +10,10 @@ import { buildMathComparison } from "./ui/mathComparison";
 import { onMotionChange } from "./engine/motion";
 import { buildControls } from "./ui/controls";
 import { buildColorVisionControls } from "./ui/colorVisionControls";
-import { buildBookmarklet } from "./ui/bookmarklet";
+import {
+  buildBookmarklet,
+  buildColorVisionBookmarklet,
+} from "./ui/bookmarklet";
 import { buildThemeToggle } from "./ui/themeToggle";
 import { announce } from "./ui/announce";
 
@@ -93,6 +96,9 @@ buildMathComparison(store);
 
 const bookmarkletRoot = document.getElementById("bookmarklet-root");
 if (bookmarkletRoot) buildBookmarklet(bookmarkletRoot, store);
+
+const cvdBookmarkletRoot = document.getElementById("bookmarklet-cvd-root");
+if (cvdBookmarkletRoot) buildColorVisionBookmarklet(cvdBookmarkletRoot);
 
 const themeRoot = document.getElementById("theme-root");
 if (themeRoot) buildThemeToggle(themeRoot);

@@ -962,6 +962,23 @@ main.wrap {
 
 /* --- bookmarklet --- */
 
+/* The two bookmarklets sit side by side, stacking when the column narrows. */
+.bookmarklet-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  align-items: start;
+}
+.bookmarklet-item__heading {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.bookmarklet-item .section-note {
+  margin-bottom: 1rem;
+}
+
 .bookmarklet-link {
   display: inline-block;
   padding: 0.7rem 1.2rem;

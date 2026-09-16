@@ -2,54 +2,21 @@
 //
 // Applies an SVG colour-matrix filter to the image gallery so the three sample
 // pictures look the way a person with each deficiency is estimated to see them.
-// The matrices are the full-severity (1.0) Machado, Oliveira & Fernandes (2009)
-// linear-RGB approximations, with achromatopsia as a luminance-only matrix.
+// The matrices live in colorVisionMatrices.ts, shared with the bookmarklet.
 //
 // Accessibility: the filter is purely visual. Each image keeps its alt text,
 // and the section's status line names the active simulation for everyone.
 
 import type { ColorVision, Settings } from "../state";
+import { KIND_LABELS, MATRICES, toFeMatrix } from "./colorVisionMatrices";
 
 const STYLE_ID = "color-vision-styles";
 const FILTER_ID = "cvd-filters";
 
-/** 3x3 RGB matrices (row-major) per deficiency. */
-const MATRICES: Record<Exclude<ColorVision, "none">, readonly number[]> = {
-  protanopia: [
-    0.152286, 1.052583, -0.204868,
-    0.114503, 0.786281, 0.099216,
-    -0.003882, -0.048116, 1.051998,
-  ],
-  deuteranopia: [
-    0.367322, 0.860646, -0.227968,
-    0.280085, 0.672501, 0.047413,
-    -0.01182, 0.04294, 0.968881,
-  ],
-  tritanopia: [
-    1.255528, -0.076749, -0.178779,
-    -0.078411, 0.930809, 0.147602,
-    0.004733, 0.691367, 0.3039,
-  ],
-  achromatopsia: [
-    0.299, 0.587, 0.114,
-    0.299, 0.587, 0.114,
-    0.299, 0.587, 0.114,
-  ],
-};
-
 const LABELS: Record<ColorVision, string> = {
   none: "typical colour vision",
-  protanopia: "protanopia (red-blind)",
-  deuteranopia: "deuteranopia (green-blind)",
-  tritanopia: "tritanopia (blue-blind)",
-  achromatopsia: "achromatopsia (total colour blindness)",
+  ...KIND_LABELS,
 };
-
-/** Turn a 3x3 RGB matrix into the 4x5 values feColorMatrix expects. */
-function toFeMatrix(m: readonly number[]): string {
-  const rows = [0, 3, 6].map((i) => `${m[i]} ${m[i + 1]} ${m[i + 2]} 0 0`);
-  return [...rows, "0 0 0 1 0"].join(" ");
-}
 
 /** Inject the SVG filter definitions and the CSS that applies them, once. */
 function ensureFilters(): void {
