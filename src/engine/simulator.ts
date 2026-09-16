@@ -354,8 +354,19 @@ export class Simulator {
     clone.removeAttribute("data-sim");
     clone.removeAttribute("aria-hidden");
     clone.classList.remove("sim-visual");
-    clone.classList.add("sim-sr", "sr-only");
-    el.insertAdjacentElement("afterend", clone);
+    clone.classList.add("sim-sr");
+
+    // The clipping goes on a wrapper, not on the clone itself. `overflow` has
+    // no effect on a table box, so a cloned <table> carrying .sr-only escapes
+    // the 1px box and widens the whole page. Putting .sr-only on a <div>
+    // around it clips properly — and leaves the clone's own display alone,
+    // which matters: forcing a table to display:block would strip its table
+    // semantics from the accessibility tree, and this copy exists precisely so
+    // screen readers can still read the table.
+    const wrapper = document.createElement("div");
+    wrapper.className = "sr-only";
+    wrapper.appendChild(clone);
+    el.insertAdjacentElement("afterend", wrapper);
     return clone;
   }
 }

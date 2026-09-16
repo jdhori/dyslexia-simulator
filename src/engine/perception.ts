@@ -71,8 +71,11 @@ function buildCss(): string {
   const rules: string[] = [];
   for (const [letter, transform] of Object.entries(ALPHABET)) {
     const declarations = toDeclarations(transform);
+    // Both shapes a glyph can take: an HTML span in prose/tables, and an SVG
+    // <use> in the MathJax-rendered equation.
     rules.push(
-      `.sim-visual.m-perception .glyph[data-char="${letter}"] { ${declarations} }`,
+      `.sim-visual.m-perception .glyph[data-char="${letter}"],\n` +
+        `.sim-visual.m-perception use[data-char="${letter}"] { ${declarations} }`,
     );
   }
   return rules.join("\n");

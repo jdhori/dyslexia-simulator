@@ -522,11 +522,14 @@ main.wrap {
 }
 .math-surface {
   margin-top: 1rem;
-  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  overflow: hidden; /* keeps the label bar inside the rounded corners */
+}
+.math-surface__body {
+  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
   overflow-x: auto; /* display math can be wider than the column */
 }
 .math-surface .katex {
@@ -545,6 +548,111 @@ main.wrap {
 .math-note .menu-path {
   font-weight: 600;
   color: var(--ink);
+}
+
+/* The demo's own renderer label, numbered 1 so it reads as the first of the
+   three renderings on the page. It sits inside the equation box as a header
+   bar, matching the labelled panels below. */
+.math-render-label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.7rem 1rem;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.math-render-label strong {
+  color: var(--ink);
+}
+.math-render-label__badge,
+.math-panel__badge {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- renderer comparison: the same equation, native MathML vs MathJax --- */
+
+.math-compare {
+  margin-top: clamp(1.75rem, 1rem + 2.5vw, 2.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.math-compare__heading {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 1rem + 0.7vw, 1.4rem);
+  line-height: 1.2;
+  margin: 0;
+}
+.math-compare .section-note {
+  margin: 0;
+}
+
+.math-panel {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+/* The label reads as a numbered caption above its rendering. `figcaption` is
+   placed first in the markup so it is announced before the equation. */
+.math-panel__label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.15rem 0.6rem;
+  padding: 0.7rem 1rem;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--rule);
+}
+.math-panel__badge {
+  grid-row: span 2;
+}
+.math-panel__name {
+  font-weight: 700;
+}
+.math-panel__by {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.math-panel__body {
+  padding: clamp(1rem, 0.8rem + 1.5vw, 2rem);
+  overflow-x: auto; /* display maths can exceed the column */
+}
+/* Native MathML inherits the page font by default, which renders the maths
+   noticeably smaller than the surrounding text. */
+.math-panel__body math {
+  font-size: 1.2em;
+  color: var(--ink);
+}
+.math-panel__body .MathJax,
+.math-panel__body mjx-container {
+  color: var(--ink);
+}
+.math-panel__status {
+  margin: 0;
+  padding: 0 1rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.math-panel__status:empty {
+  padding: 0;
 }
 
 /* --- data-table demo (full width, below the reading/math layout) --- */
@@ -598,11 +706,15 @@ main.wrap {
 .data-table tbody tr:last-child td {
   border-bottom: 0;
 }
-/* Narrow screens: each row becomes a stacked card. The header row is hidden
-   visually only (kept in the accessibility tree so column headers still
-   announce), and each cell prints its own column label from data-label. */
+/* Narrow screens: each row becomes a stacked card, and each cell prints its
+   own column label from data-label.
+   The :not(.sim-sr) is essential. The simulator leaves an off-screen clone of
+   the table for assistive technology, and `display: block` on a <table> strips
+   its table semantics from the accessibility tree — rows and headers stop
+   being announced as a table. The visible table is aria-hidden, so blockifying
+   it costs nothing; the clone must stay a real table. */
 @media (max-width: 52rem) {
-  .data-table thead {
+  .data-table:not(.sim-sr) thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -613,27 +725,27 @@ main.wrap {
     white-space: nowrap;
     border: 0;
   }
-  .data-table,
-  .data-table tbody,
-  .data-table tr,
-  .data-table th,
-  .data-table td {
+  .data-table:not(.sim-sr),
+  .data-table:not(.sim-sr) tbody,
+  .data-table:not(.sim-sr) tr,
+  .data-table:not(.sim-sr) th,
+  .data-table:not(.sim-sr) td {
     display: block;
   }
-  .data-table tbody tr {
+  .data-table:not(.sim-sr) tbody tr {
     padding: 0.35rem 0 0.6rem;
     border-bottom: 1px solid var(--rule);
   }
-  .data-table tbody tr:last-child {
+  .data-table:not(.sim-sr) tbody tr:last-child {
     border-bottom: 0;
   }
-  .data-table tbody th {
+  .data-table:not(.sim-sr) tbody th {
     padding: 0.5rem 1rem 0.35rem;
     font-size: 1.05rem;
     background: var(--surface-sunken);
     border-bottom: 0;
   }
-  .data-table td {
+  .data-table:not(.sim-sr) td {
     display: grid;
     grid-template-columns: minmax(7.5rem, 40%) 1fr;
     gap: 0.75rem;
@@ -642,7 +754,7 @@ main.wrap {
     overflow-wrap: anywhere;
     border-bottom: 0;
   }
-  .data-table td::before {
+  .data-table:not(.sim-sr) td::before {
     /* The "/ ''" alternative text hides this from assistive tech: the real
        column header is still associated via <thead>, so it would otherwise be
        announced twice. */
@@ -653,10 +765,10 @@ main.wrap {
   }
   /* Every value reads left in the stacked layout; the right-align rule above is
      for scanning columns, which no longer exist here. */
-  .data-table td:not(:first-child):not(:last-child) {
+  .data-table:not(.sim-sr) td:not(:first-child):not(:last-child) {
     text-align: left;
   }
-  .data-table tbody tr:hover {
+  .data-table:not(.sim-sr) tbody tr:hover {
     background: transparent;
   }
 }
@@ -929,6 +1041,14 @@ main.wrap {
   vertical-align: baseline;
 }
 
+/* A MathJax SVG glyph is a <use>, not a span. Anchoring the transform box to
+   the glyph's own fill box makes rotate / scale pivot on the character, the
+   way they do for an inline-block span. */
+.sim-math use[data-char] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 /* Keep a word's letters together so a line breaks between words, never between
    letters. A word too long for the line still breaks as a last resort (mobile). */
 .word {
@@ -936,17 +1056,17 @@ main.wrap {
 }
 
 /* Letter flips: the classic confusable pairs are mirrored (b d p q g)... */
-.sim-visual.m-flip .glyph[data-char="b"],
-.sim-visual.m-flip .glyph[data-char="d"],
-.sim-visual.m-flip .glyph[data-char="p"],
-.sim-visual.m-flip .glyph[data-char="q"],
-.sim-visual.m-flip .glyph[data-char="g"] {
+.sim-visual.m-flip :is(.glyph, use)[data-char="b"],
+.sim-visual.m-flip :is(.glyph, use)[data-char="d"],
+.sim-visual.m-flip :is(.glyph, use)[data-char="p"],
+.sim-visual.m-flip :is(.glyph, use)[data-char="q"],
+.sim-visual.m-flip :is(.glyph, use)[data-char="g"] {
   scale: -1 1;
 }
 /* ...and 6 / 9 rotate into each other. (The digit↔letter look-alikes — 0/O,
    2/R, 3/E, 5/S, 8/B — are swapped in JS; see the simulator's flip tick.) */
-.sim-visual.m-flip .glyph[data-char="6"],
-.sim-visual.m-flip .glyph[data-char="9"] {
+.sim-visual.m-flip :is(.glyph, use)[data-char="6"],
+.sim-visual.m-flip :is(.glyph, use)[data-char="9"] {
   rotate: 180deg;
 }
 
@@ -981,7 +1101,8 @@ main.wrap {
    Gated on `.motion-ok` so reduced-motion users never see it. (No `will-change`:
    it would promote hundreds of glyph spans to their own layers; the `transform`
    animation is compositor-threaded on its own.) */
-.motion-ok .sim-visual.m-wobble .glyph {
+.motion-ok .sim-visual.m-wobble .glyph,
+.motion-ok .sim-visual.m-wobble use[data-char] {
   animation: dsx-wobble var(--wobble-period, 1.6s) var(--gd, 0s) infinite alternate
     ease-in-out;
 }

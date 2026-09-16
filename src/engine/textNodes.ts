@@ -21,6 +21,11 @@ export function collectTextNodes(root: Element): Text[] {
       const parent = node.parentElement;
       if (!parent) return NodeFilter.FILTER_REJECT;
       if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+      // Visually-hidden text is never seen, so simulating it buys nothing —
+      // and wrapping it in inline-block glyphs actively hurts: inside a
+      // <caption class="sr-only">, the spans escape the 1px clipping box and
+      // widen the whole page, giving the body a horizontal scrollbar.
+      if (parent.closest(".sr-only")) return NodeFilter.FILTER_REJECT;
       const value = node.nodeValue;
       if (!value || !/\S/.test(value)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
