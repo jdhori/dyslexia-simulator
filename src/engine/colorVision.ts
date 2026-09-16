@@ -88,6 +88,26 @@ function ensureFilters(): void {
   document.head.appendChild(style);
 }
 
+// The status line says what is on screen and, when nothing is being filtered,
+// why — the master switch and the reveal control both suspend this section, and
+// the controls that do so sit far away from the images they affect.
+function statusFor(
+  settings: Settings,
+  active: boolean,
+  kind: ColorVision,
+): string {
+  if (!settings.enabled) {
+    return "Showing the original images. The simulation is switched off — tick “Simulation on” in the controls to apply a colour vision filter.";
+  }
+  if (settings.reveal) {
+    return "Showing the original images, because the original text is revealed. Press Escape, or use the reveal control, to return to the simulation.";
+  }
+  if (!active || kind === "none") {
+    return "Showing the original images. Choose a colour vision deficiency above to filter them.";
+  }
+  return `Simulating ${LABELS[kind]}.`;
+}
+
 export class ColorVisionSimulator {
   private readonly gallery: HTMLElement;
   private readonly status: HTMLElement | null;
@@ -104,11 +124,6 @@ export class ColorVisionSimulator {
     const active = settings.enabled && !settings.reveal;
     const kind: ColorVision = active ? settings.colorVision : "none";
     this.gallery.dataset.cvd = kind;
-    if (this.status) {
-      this.status.textContent =
-        kind === "none"
-          ? "Showing the original images."
-          : `Simulating ${LABELS[kind]}.`;
-    }
+    if (this.status) this.status.textContent = statusFor(settings, active, kind);
   }
 }
