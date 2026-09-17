@@ -8,12 +8,16 @@
 // magnifier user sees it without hunting. Native buttons fire on release, so
 // pointer cancellation (SC 2.5.2) comes for free.
 //
-// The panel is a polite live region that stays in the accessibility tree at
-// all times: opening it *inserts* the text (which is what gets announced, so
-// the reader hears the explanation without navigating to it) and closing it
-// empties the panel again. Toggling `hidden` instead would not announce
-// reliably, because live regions only report changes inside a region that is
-// already present.
+// Opening the panel also speaks its text, so a screen-reader user hears the
+// explanation without having to navigate to it. That announcement goes through
+// the page's one persistent live region (see announce.ts) rather than an
+// aria-live attribute on the panel: the panel is empty and zero-height until it
+// opens, and a browser does not expose an element in that state, so a live
+// region declared on it is never armed and never speaks. VoiceOver in Chrome
+// shows this most clearly — the attribute is there in DevTools and nothing is
+// announced no matter how long you wait.
+
+import { announce } from "./announce";
 
 let idCounter = 0;
 
@@ -33,7 +37,6 @@ export function buildInfoDisclosure(subject: string, text: string): InfoDisclosu
   const panel = document.createElement("p");
   panel.className = "info-panel";
   panel.id = `info-panel-${idCounter}`;
-  panel.setAttribute("aria-live", "polite");
 
   const button = document.createElement("button");
   button.type = "button";
@@ -51,8 +54,14 @@ export function buildInfoDisclosure(subject: string, text: string): InfoDisclosu
   button.addEventListener("click", () => {
     const open = button.getAttribute("aria-expanded") !== "true";
     button.setAttribute("aria-expanded", String(open));
-    if (open) setEmphasisContent(panel, text);
-    else panel.replaceChildren();
+    if (open) {
+      setEmphasisContent(panel, text);
+      // Name the subject first, so the reader knows which control this
+      // explains — the button's own name is not repeated by the region.
+      announce(`${subject}. ${text.replace(/\*/g, "")}`);
+    } else {
+      panel.replaceChildren();
+    }
   });
 
   return { button, panel };

@@ -226,12 +226,20 @@ B_r(x)=\{y \in X \mid d(y, x)&lt;r\} \\
                   >
                 </figcaption>
                 <div class="math-panel__body" id="mathjax4-equation"></div>
+                <!--
+                  The non-breaking space is load-bearing: a browser does not
+                  expose an empty, zero-height element, so a live region that
+                  starts empty is never armed and its first message is never
+                  announced. Keeping it non-empty registers it from load.
+                -->
                 <p
                   class="math-panel__status"
                   id="mathjax4-status"
                   role="status"
                   aria-live="polite"
-                ></p>
+                >
+                  &nbsp;
+                </p>
               </figure>
             </div>
           </div>

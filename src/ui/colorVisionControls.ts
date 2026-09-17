@@ -6,12 +6,12 @@
 // (beneath it on narrow screens), so opening an explanation never reflows the
 // list itself. Only one explanation is open at a time. The buttons follow the
 // disclosure pattern (aria-expanded + aria-controls on the shared panel), and
-// the panel is a polite live region that is always present: opening fills it
-// (which announces the text without the reader having to navigate to it) and
-// closing empties it.
+// opening one also speaks its text through the page's persistent live region,
+// so the reader hears the explanation without navigating to it.
 
 import type { ColorVision, Settings, SettingsStore } from "../state";
 import { setEmphasisContent } from "./infoDisclosure";
+import { announce } from "./announce";
 
 interface OptionDef {
   value: ColorVision;
@@ -152,13 +152,12 @@ interface DetailPanel {
 }
 
 // One shared explanation panel: a heading (the option's label) plus its
-// description, inside a polite live region. It is emptied rather than hidden
-// when closed, so the next opening is announced.
+// description. Opening it also speaks the text through the page's persistent
+// live region — see announce.ts for why the panel cannot be its own.
 function buildDetailPanel(): DetailPanel {
   const region = document.createElement("div");
   region.className = "cvd-detail";
   region.id = nextId("detail");
-  region.setAttribute("aria-live", "polite");
   region.classList.add("is-empty");
 
   const heading = document.createElement("h3");
@@ -174,6 +173,7 @@ function buildDetailPanel(): DetailPanel {
       heading.textContent = option.label;
       setEmphasisContent(text, option.info);
       region.classList.remove("is-empty");
+      announce(`${option.label}. ${option.info}`);
     },
     hide: () => {
       heading.textContent = "";
