@@ -48,6 +48,15 @@
 //   - its default font, mathjax-newcm, as CommonHTML woff2 files and the
 //     glyph-range scripts that MathJax 4 loads on demand. The SVG-output
 //     copy and the CommonJS/ES module builds are left out.
+//
+// LICENCES: each copy keeps MathJax's LICENSE (Apache License 2.0), which
+// covers MathJax's code. The fonts are under their own licences, which each
+// font file names in its name table but neither npm package ships as text:
+// MathJax 2.7.7's TeX fonts are Design Science's, under the SIL Open Font
+// License 1.1, and MathJax 4's New Computer Modern font is Antonis
+// Tsolomitis's, under the GUST Font License (which builds on the LPPL 1.3c).
+// Those texts are kept in licenses/ and copied beside the fonts they cover;
+// test/vendor-mathjax.test.mjs reads every copied font to check it.
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -67,7 +76,8 @@ export const NATIVE_MML_OTF = Object.freeze([
 /**
  * What to copy from each package. `copy` lists files and folders, relative to
  * the package; `skip` drops paths inside a copied folder (tested against the
- * forward-slash path relative to the package).
+ * forward-slash path relative to the package); `fontLicences` maps a file in
+ * this repository's licenses/ folder to where it goes in the copy.
  */
 export const PACKAGES = Object.freeze([
   {
@@ -90,6 +100,8 @@ export const PACKAGES = Object.freeze([
       "fonts/HTML-CSS/TeX/woff",
       ...NATIVE_MML_OTF.map((font) => `fonts/HTML-CSS/TeX/otf/${font}`),
     ],
+    // Design Science's TeX fonts name the SIL Open Font License 1.1.
+    fontLicences: { "licenses/MathJax-TeX-fonts-OFL-1.1.txt": "fonts/OFL.txt" },
     skip: [
       // Font families other than TeX, for every output.
       /^jax\/output\/[^/]+\/fonts\/(?!TeX(\/|$))/,
@@ -117,10 +129,16 @@ export const PACKAGES = Object.freeze([
     name: "mathjax-newcm-font",
     dependency: "@mathjax/mathjax-newcm-font",
     dest: "mathjax-newcm-font",
-    // The package ships no LICENSE file of its own; its package.json says
-    // Apache-2.0, the same licence as MathJax 4, whose text is copied with it.
+    // The package ships no LICENSE file of its own. Its package.json says
+    // Apache-2.0, the licence of its scripts (chtml/dynamic/), the same as
+    // MathJax 4's, whose text is copied as LICENSE. The woff2 fonts name the
+    // GUST Font License instead, which builds on the LPPL 1.3c.
     copy: ["chtml/woff2", "chtml/dynamic"],
     licenceFrom: { dependency: "mathjax4", file: "LICENSE" },
+    fontLicences: {
+      "licenses/MathJax-NewCM-GUST-FONT-LICENSE.txt": "GUST-FONT-LICENSE.txt",
+      "licenses/LPPL-1.3c.txt": "LPPL-1.3c.txt",
+    },
     skip: [],
   },
 ]);
@@ -172,7 +190,7 @@ function measure(dir) {
  */
 export function vendorMathJax({ out = path.join(ROOT, "public", "vendor"), quiet = false } = {}) {
   const report = { bytes: 0, files: 0, versions: {}, packages: {} };
-  for (const { name, dependency, dest, copy, skip, licenceFrom } of PACKAGES) {
+  for (const { name, dependency, dest, copy, skip, licenceFrom, fontLicences = {} } of PACKAGES) {
     const { dir, version } = installed(dependency);
     const target = path.join(out, dest);
     rmSync(target, { recursive: true, force: true });
@@ -190,6 +208,11 @@ export function vendorMathJax({ out = path.join(ROOT, "public", "vendor"), quiet
     if (licenceFrom) {
       const { dir: licenceDir } = installed(licenceFrom.dependency);
       cpSync(path.join(licenceDir, licenceFrom.file), path.join(target, "LICENSE"));
+    }
+    for (const [from, to] of Object.entries(fontLicences)) {
+      const source = path.join(ROOT, from);
+      if (!existsSync(source)) throw new Error(`${from} is missing; it is the licence of ${dependency}'s fonts`);
+      cpSync(source, path.join(target, to));
     }
     const size = measure(target);
     report.packages[name] = size;

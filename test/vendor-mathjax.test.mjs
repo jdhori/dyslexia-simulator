@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NATIVE_MML_OTF, PACKAGES, vendorMathJax } from "../scripts/vendor-mathjax.mjs";
+import { fontNames } from "./font-names.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
@@ -140,6 +141,68 @@ describe("scripts/vendor-mathjax.mjs", () => {
     assert.equal(report.files, files.length);
   });
 
+  // Each font file says in its own name table who holds it and under which
+  // licence: MathJax 2.7.7's TeX fonts are Design Science's, under the SIL
+  // Open Font License 1.1, and MathJax 4's New Computer Modern font is Antonis
+  // Tsolomitis's, under the GUST Font License. Neither npm package ships those
+  // texts, and OFL 1.1 asks every copy to carry its licence, so the vendor
+  // script copies them from licenses/. A font that names no licence (MathJax
+  // 2.7.7's two MathJax_Vector files) falls under its package's LICENSE.
+  test("ships, beside every font, the text of the licence the font names", () => {
+    const fonts = files.filter((f) => /\.(otf|ttf|woff2?)$/.test(f));
+    assert.ok(fonts.length > 100, `only ${fonts.length} fonts found; the check would prove little`);
+    /** The nearest file called `name` at or above `file`'s folder, inside its package. */
+    const nearest = (file, name) => {
+      const top = file.split("/")[0];
+      for (let dir = path.posix.dirname(file); dir.startsWith(top); dir = path.posix.dirname(dir)) {
+        if (files.includes(`${dir}/${name}`)) return `${dir}/${name}`;
+      }
+      return null;
+    };
+    const problems = [];
+    for (const font of fonts) {
+      const names = fontNames(readFileSync(path.join(out, font)));
+      const named = `${names.copyright}\n${names.licence}\n${names.licenceUrl}`;
+      const licence =
+        /SIL Open Font License|scripts\.sil\.org\/OFL/i.test(named) ? "OFL.txt"
+        : /GUST Font License/i.test(named) ? "GUST-FONT-LICENSE.txt"
+        : /licen[cs]e/i.test(named) ? null
+        : "LICENSE";
+      if (!licence) {
+        problems.push(`${font} names a licence this test does not know: ${named}`);
+        continue;
+      }
+      const shipped = nearest(font, licence);
+      if (!shipped) {
+        problems.push(`${font} names ${licence}, but its copy has no ${licence}`);
+        continue;
+      }
+      if (licence === "LICENSE") continue;
+      // The licence text must carry the font's own copyright lines with it.
+      const text = readFileSync(path.join(out, shipped), "utf8").replace(/,/g, "");
+      for (const holder of named.match(/(?:Copyright \(c\)|\(C\)) \d{4}(?:-\d{4})?,? [^.(\n]+/gi) ?? []) {
+        const who = holder.replace(/^(?:Copyright \(c\)|\(C\))\s*/i, "").replace(/,/g, "").trim();
+        if (!text.includes(who)) problems.push(`${shipped} does not name "${who}" (from ${font})`);
+      }
+      const reserved = /Reserved Font Name ([\w-]+)/.exec(named);
+      if (reserved && !text.includes(`Reserved Font Name ${reserved[1]}`)) {
+        problems.push(`${shipped} does not reserve ${reserved[1]} (from ${font})`);
+      }
+    }
+    assert.deepEqual([...new Set(problems)], []);
+  });
+
+  test("the font licences are the full texts, with the LPPL the GUST licence builds on", () => {
+    const read = (file) => readFileSync(path.join(out, file), "utf8");
+    assert.match(read("mathjax2/fonts/OFL.txt"), /SIL OPEN FONT LICENSE Version 1\.1 - 26 February 2007[\s\S]*TERMINATION[\s\S]*DISCLAIMER/);
+    const gust = read("mathjax-newcm-font/GUST-FONT-LICENSE.txt");
+    assert.match(gust, /This is version 1\.0, dated 22 June 2009, of the GUST Font License/);
+    assert.match(gust, /LaTeX Project Public License, either version 1\.3c/);
+    assert.match(read("mathjax-newcm-font/LPPL-1.3c.txt"), /LPPL Version 1\.3c\s+2008-05-04[\s\S]*NO WARRANTY/);
+    // The package's own scripts keep the licence its package.json declares.
+    assert.match(read("mathjax-newcm-font/LICENSE"), /Apache License/);
+  });
+
   test("replaces an earlier copy rather than adding to it", () => {
     const stale = path.join(out, "mathjax2", "stale.js");
     writeFileSync(stale, "// left over from an older MathJax\n");
@@ -165,5 +228,15 @@ describe("no CDN in the app's own source", () => {
     const loader = readFileSync(path.join(ROOT, "src/engine/mathjaxLoader.ts"), "utf8");
     assert.doesNotMatch(loader, /["'`]https?:\/\//, "an absolute URL in the loader");
     assert.match(loader, /import\.meta\.env\.BASE_URL/);
+  });
+});
+
+describe("the README's credits", () => {
+  test("name each maths font's own licence, not only MathJax's", () => {
+    const readme = readFileSync(path.join(ROOT, "README.md"), "utf8");
+    const credits = readme.slice(readme.indexOf("## Credits"));
+    assert.match(credits, /Design Science[\s\S]*SIL Open\s+Font\s+License/);
+    assert.match(credits, /Antonis\s+Tsolomitis[\s\S]*GUST\s+Font\s+License/);
+    assert.doesNotMatch(credits, /New\s+Computer\s+Modern\s+font,\s+Apache/);
   });
 });

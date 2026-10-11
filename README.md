@@ -134,7 +134,7 @@ served from the app's own `vendor/` folder:
 | `@mathjax/mathjax-newcm-font@4.1.3` | `vendor/mathjax-newcm-font/` | MathJax 4's default font, which it would otherwise fetch from a CDN |
 
 `scripts/vendor-mathjax.mjs` copies only the files the page can load (about
-8.6 MB, 604 files, out of about 140 MB of packages) from `node_modules` into
+8.6 MB, 607 files, out of about 140 MB of packages) from `node_modules` into
 `public/vendor/` before every `npm run dev` and `npm run build` (the
 `predev` and `prebuild` scripts). `public/vendor/` is git-ignored: the pinned
 packages are the source of truth, and the script refuses to copy a package
@@ -227,6 +227,7 @@ src/
     announce.ts           # screen-reader live region
 scripts/
   vendor-mathjax.mjs      # copies MathJax into public/vendor/ (predev, prebuild)
+licenses/                 # the maths fonts' licence texts, copied into vendor/
 test/                     # node --test unit tests
 public/
   colorblind/             # the three colour-vision sample images
@@ -245,8 +246,19 @@ public/
 - Colour vision matrices: Machado, Oliveira & Fernandes,
   [“A Physiologically-based Model for Simulation of Color Vision Deficiency”](https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html)
   (2009).
-- [MathJax](https://www.mathjax.org/) 2.7.7 and 4.1.3 and its New Computer
-  Modern font, Apache License 2.0; each copy in `vendor/` keeps its `LICENSE`.
+- [MathJax](https://www.mathjax.org/) 2.7.7 and 4.1.3, Apache License 2.0;
+  each copy in `vendor/` keeps its `LICENSE`. Their fonts have licences of
+  their own, which each font file names and `vendor/` ships beside it (the
+  texts are kept in `licenses/`):
+  - MathJax 2.7.7's TeX fonts, © 2009–2010 Design Science, Inc., under the
+    [SIL Open Font License 1.1](https://openfontlicense.org/)
+    (`vendor/mathjax2/fonts/OFL.txt`);
+  - MathJax 4's New Computer Modern font (mathjax-newcm), © 2019–2021 Antonis
+    Tsolomitis, converted by MathJax, Inc. (2024), under the
+    [GUST Font License](https://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt),
+    which builds on the LaTeX Project Public License 1.3c
+    (`vendor/mathjax-newcm-font/GUST-FONT-LICENSE.txt` and `LPPL-1.3c.txt`).
+    The package's scripts are Apache License 2.0, as its `package.json` says.
 - The three colour-vision sample images in `public/colorblind/` have no
   recorded source or licence yet.
 
