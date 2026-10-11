@@ -41,9 +41,11 @@
 import {
   clearSelectionWithoutEval,
   ignoreSharedMenuSettings,
+  loadMenuDuringStartup,
   storeMenuSettingsLocally,
   type MathJax2Cookie,
   type MathJax2Events,
+  type MathJax2Startup,
 } from "./mathjaxCompat";
 
 /** This app's vendor/ folder, as an absolute URL with no trailing slash. */
@@ -61,6 +63,7 @@ const MATHJAX4_FONT = `${VENDOR_ROOT}/mathjax-newcm-font`;
 
 interface MathJax2Hub {
   Queue: (...args: unknown[]) => void;
+  Register: { StartupHook: (hook: string, fn: () => void) => void };
 }
 export interface MathJax2 {
   Hub: MathJax2Hub;
@@ -151,6 +154,11 @@ export function loadMathJax2(): Promise<MathJax2> {
     const mj = window.MathJax as MathJax2 | undefined;
     if (!mj?.Hub) throw new Error("MathJax 2 loaded but Hub is missing");
     mathJax2Global = mj;
+    // The script has run, but 2.7.7 starts up asynchronously after it, still
+    // reading window.MathJax as it goes. Report it ready only once startup
+    // has finished, so MathJax 4 never borrows the global in the middle.
+    // (StartupHook also fires at once if "End" has already been posted.)
+    await new Promise<void>((resolve) => mj.Hub.Register.StartupHook("End", resolve));
     return mj;
   })();
 
@@ -163,13 +171,18 @@ export function loadMathJax2(): Promise<MathJax2> {
  */
 function prepareMathJax2(): void {
   const mj = window.MathJax as
-    | {
+    | (MathJax2Startup & {
         HTML?: { Cookie?: MathJax2Cookie };
-        Hub?: { Register?: { StartupHook?: (hook: string, fn: () => void) => void } };
-        Extension?: { MathEvents?: MathJax2Events };
-      }
+        Hub?: MathJax2Startup["Hub"] & {
+          Register?: { StartupHook?: (hook: string, fn: () => void) => void };
+        };
+        Extension?: MathJax2Startup["Extension"] & { MathEvents?: MathJax2Events };
+      })
     | undefined;
   if (!mj) return;
+  // Startup loads the menu's phrases itself, instead of leaving them on a
+  // timer that would fire while MathJax 4 holds the global.
+  loadMenuDuringStartup(mj);
   // The menu remembers its choices in localStorage, not in a site-wide cookie.
   if (mj.HTML?.Cookie) storeMenuSettingsLocally(mj.HTML.Cookie, () => window.localStorage);
   // Opening the menu clears the selection without a string timer, which the

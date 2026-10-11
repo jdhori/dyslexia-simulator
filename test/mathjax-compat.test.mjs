@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import {
   clearSelectionWithoutEval,
   ignoreSharedMenuSettings,
+  loadMenuDuringStartup,
   storeMenuSettingsLocally,
 } from "../src/engine/mathjaxCompat.ts";
 
@@ -105,6 +106,54 @@ describe("clearSelectionWithoutEval (MathJax 2.7.7's right-click handler)", () =
   test("reports false, and changes nothing, before MathEvents has loaded", () => {
     assert.equal(clearSelectionWithoutEval(undefined, globalThis), false);
     assert.equal(clearSelectionWithoutEval({}, globalThis), false);
+  });
+});
+
+describe("loadMenuDuringStartup (MathJax 2.7.7's delayed menu loads)", () => {
+  // Out of the box, 2.7.7's startup step MenuZoom sets timers: 1 s later it
+  // loads the menu's phrases, and 2 s later MathZoom if it is missing. Those
+  // timers can fire while MathJax 4 holds window.MathJax, and 2.7.7 then dies
+  // reading MathJax.Callback off the wrong object.
+  function fakeMathJax2({ showMathMenu = true, menu = true, zoom = true } = {}) {
+    const queued = [];
+    const mj = {
+      Ajax: { name: "Ajax" },
+      Localization: { name: "Localization" },
+      Callback: { Queue: () => ({ Push: (...items) => (queued.push(items), "queue") }) },
+      Extension: { ...(menu ? { MathMenu: {} } : {}), ...(zoom ? { MathZoom: {} } : {}) },
+      Hub: { config: { showMathMenu }, Startup: { MenuZoom: () => assert.fail("the original ran") } },
+    };
+    return { mj, queued };
+  }
+
+  test("does the same loads at once, as part of startup, and hands startup the queue to wait on", () => {
+    const { mj, queued } = fakeMathJax2();
+    assert.equal(loadMenuDuringStartup(mj), true);
+    assert.equal(mj.Hub.Startup.MenuZoom(), "queue");
+    assert.deepEqual(queued, [[["loadDomain", mj.Localization, "MathMenu"]]]);
+  });
+
+  test("loads MathMenu and MathZoom first when they are not loaded yet", () => {
+    const { mj, queued } = fakeMathJax2({ menu: false, zoom: false });
+    loadMenuDuringStartup(mj);
+    mj.Hub.Startup.MenuZoom();
+    assert.deepEqual(queued, [[
+      ["Require", mj.Ajax, "[MathJax]/extensions/MathMenu.js", {}],
+      ["loadDomain", mj.Localization, "MathMenu"],
+      ["Require", mj.Ajax, "[MathJax]/extensions/MathZoom.js", {}],
+    ]]);
+  });
+
+  test("loads nothing when the page has no MathJax menu", () => {
+    const { mj, queued } = fakeMathJax2({ showMathMenu: false });
+    loadMenuDuringStartup(mj);
+    assert.equal(mj.Hub.Startup.MenuZoom(), null);
+    assert.deepEqual(queued, []);
+  });
+
+  test("reports false, and changes nothing, without a startup to change", () => {
+    assert.equal(loadMenuDuringStartup(undefined), false);
+    assert.equal(loadMenuDuringStartup({ Hub: {} }), false);
   });
 });
 

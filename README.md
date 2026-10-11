@@ -142,9 +142,13 @@ whose installed version differs from the pin. The script's header lists what
 is left out and why; `test/vendor-mathjax.test.mjs` checks it.
 
 `src/engine/mathjaxLoader.ts` points both versions at those copies through
-`import.meta.env.BASE_URL`, and `src/engine/mathjaxCompat.ts` holds three
-small fixes for sharing a site:
+`import.meta.env.BASE_URL`, and `src/engine/mathjaxCompat.ts` holds four
+small fixes for sharing a page and a site:
 
+- MathJax 2.7.7 loads its menu's phrases during startup, not on a timer a
+  second later: the timer fired while MathJax 4 held `window.MathJax`, and
+  2.7.7 then threw "MathJax.Callback is not a function". The loader also
+  waits for 2.7.7's startup to finish before MathJax 4 borrows the global;
 - MathJax 2.7.7's menu keeps its settings in `localStorage` (`mjx.menu`)
   instead of a year-long, site-wide cookie;
 - opening that menu no longer passes a string to `setTimeout`, which a policy

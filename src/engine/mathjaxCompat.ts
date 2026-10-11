@@ -1,6 +1,7 @@
-// Three small fixes that let MathJax 2.7.7 and MathJax 4 run on this page
-// under a strict content security policy, on a site whose other pages may
-// use MathJax too. engine/mathjaxLoader.ts applies them as each version loads.
+// Small fixes that let MathJax 2.7.7 and MathJax 4 run on this page under a
+// strict content security policy, on a site whose other pages may use
+// MathJax too, without either version tripping over the other.
+// engine/mathjaxLoader.ts applies them as each version loads.
 //
 // They touch nothing at the top level, so test/mathjax-compat.test.mjs can
 // run them in Node with stand-ins for the browser.
@@ -108,6 +109,51 @@ export function clearSelectionWithoutEval(
   events.ClearSelection = () => {
     if (!extension.safariContextMenuBug) return;
     win.setTimeout(() => win.getSelection()?.empty?.(), 0);
+  };
+  return true;
+}
+
+/** The parts of MathJax 2.7.7's API that its startup's MenuZoom step uses. */
+export interface MathJax2Startup {
+  Ajax?: unknown;
+  Localization?: unknown;
+  Callback?: { Queue: () => { Push: (...items: unknown[]) => unknown } };
+  Extension?: { MathMenu?: unknown; MathZoom?: unknown };
+  Hub?: {
+    config?: { showMathMenu?: boolean };
+    Startup?: { MenuZoom?: () => unknown };
+  };
+}
+
+/**
+ * Load 2.7.7's menu phrases (and MathMenu or MathZoom, if missing) during
+ * its startup, instead of on timers after it.
+ *
+ * 2.7.7's startup step MenuZoom leaves two loads on timers, to speed up the
+ * first typeset: the menu's phrases 1 s later, and MathZoom 2 s later if it
+ * is not loaded yet. On this page those timers fire while MathJax 4 may hold
+ * window.MathJax, and 2.7.7 then dies reading MathJax.Callback off MathJax
+ * 4's object. Both extensions are loaded at startup here anyway, and English
+ * phrases need no file, so doing it at once costs nothing; and startup waits
+ * for it, so 2.7.7 has nothing left pending when it reports that it is done.
+ *
+ * Call it from 2.7.7's AuthorInit, before startup runs.
+ *
+ * @returns false if there is no startup to change
+ */
+export function loadMenuDuringStartup(mathJax2: MathJax2Startup | undefined): boolean {
+  const startup = mathJax2?.Hub?.Startup;
+  if (!mathJax2 || !startup) return false;
+  const mj = mathJax2;
+  startup.MenuZoom = () => {
+    if (!mj.Hub?.config?.showMathMenu || !mj.Callback) return null;
+    const items: unknown[] = [];
+    if (!mj.Extension?.MathMenu) items.push(["Require", mj.Ajax, "[MathJax]/extensions/MathMenu.js", {}]);
+    items.push(["loadDomain", mj.Localization, "MathMenu"]);
+    if (!mj.Extension?.MathZoom) items.push(["Require", mj.Ajax, "[MathJax]/extensions/MathZoom.js", {}]);
+    // A startup step that returns its queue's last callback, as 2.7.7's own
+    // steps do, makes startup wait until the loads are done.
+    return mj.Callback.Queue().Push(...items);
   };
   return true;
 }
