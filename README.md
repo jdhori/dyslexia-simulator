@@ -81,15 +81,36 @@ can scroll it.
 
 ## Colour vision
 
-Three sample images — Ishihara plates, charts that rely on colour alone, and a
-red-versus-green football game — can be re-rendered as someone with
-protanopia, deuteranopia, tritanopia or achromatopsia is estimated to see them.
-The filters are SVG `feColorMatrix` versions of the Machado, Oliveira and
-Fernandes (2009) full-severity matrices (`src/engine/colorVisionMatrices.ts`),
-so they are an estimate, not a measurement. Each option has an **i** button
-that explains the condition, and a status line always says which view is on
+Three sample images — Ishihara-style test plates, charts that rely on colour
+alone, and two football teams in red and green — can be re-rendered as someone
+with protanopia, deuteranopia, tritanopia or achromatopsia is estimated to see
+them. The filters are SVG `feColorMatrix` matrices
+(`src/engine/colorVisionMatrices.ts`): the protanopia, deuteranopia and
+tritanopia matrices are the Machado, Oliveira and Fernandes (2009) models at
+full severity, and achromatopsia is a plain greyscale conversion (the same
+luma weights on every channel; the paper has no model for it). So each view
+is an estimate, not a measurement. Each option has an **i** button that
+explains the condition, and a status line always says which view is on
 screen. The **Simulation on** switch and the reveal control suspend the
 filters too.
+
+The images are drawn for this project by `scripts/draw-colorblind-images.mjs`
+(`node scripts/draw-colorblind-images.mjs` rewrites `public/colorblind/`),
+from made-up numbers, so they carry the repository's own licence.
+`test/colour-vision.test.mjs` checks that the committed files are what the
+script draws, and, with the page's own matrices, that the colours do what the
+captions say:
+
+- **Plates.** The first, dark dots on light, stays under every view. Four hide
+  their number in orange and green chosen so that each figure colour has a
+  twin among the ground colours under protanopia and deuteranopia, in light
+  and dark pairs so lightness gives nothing away either; they vanish under
+  achromatopsia too. The last hides its number in pink among orange-red,
+  which vanishes under tritanopia instead (and achromatopsia).
+- **Charts.** Three series in red, green and brown, with a colour-only key:
+  red and green merge under deuteranopia, red and brown under protanopia.
+- **Teams.** Three players a side in one colour from helmet to socks; the two
+  kits turn the same khaki under deuteranopia.
 
 ## Accessibility
 
@@ -215,7 +236,7 @@ src/
     mathjaxLoader.ts      # loads both MathJax versions from vendor/, shares the global
     mathjaxCompat.ts      # the CSP and shared-origin fixes for MathJax
     colorVision.ts        # applies the colour-vision filters to the gallery
-    colorVisionMatrices.ts # Machado 2009 matrices, shared with the bookmarklet
+    colorVisionMatrices.ts # Machado 2009 matrices + a greyscale one, shared with the bookmarklet
   ui/
     controls.ts           # the control panel
     colorVisionControls.ts # the colour-vision chooser and its explanations
@@ -227,10 +248,11 @@ src/
     announce.ts           # screen-reader live region
 scripts/
   vendor-mathjax.mjs      # copies MathJax into public/vendor/ (predev, prebuild)
+  draw-colorblind-images.mjs # draws the three colour-vision sample images
 licenses/                 # the maths fonts' licence texts, copied into vendor/
 test/                     # node --test unit tests
 public/
-  colorblind/             # the three colour-vision sample images
+  colorblind/             # the three colour-vision sample images (drawn, SVG)
 ```
 
 ## Credits & sources
@@ -243,9 +265,10 @@ public/
 - Daniel Britton’s
   [*Dyslexia* typeface](https://www.boredpanda.com/dyslexic-typrface-daniel-britton/),
   which simulates the *effort* of decoding by removing parts of each letter.
-- Colour vision matrices: Machado, Oliveira & Fernandes,
+- Protanopia, deuteranopia and tritanopia matrices: Machado, Oliveira &
+  Fernandes,
   [“A Physiologically-based Model for Simulation of Color Vision Deficiency”](https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html)
-  (2009).
+  (2009). The achromatopsia filter is a plain greyscale, not theirs.
 - [MathJax](https://www.mathjax.org/) 2.7.7 and 4.1.3, Apache License 2.0;
   each copy in `vendor/` keeps its `LICENSE`. Their fonts have licences of
   their own, which each font file names and `vendor/` ships beside it (the
@@ -259,8 +282,11 @@ public/
     which builds on the LaTeX Project Public License 1.3c
     (`vendor/mathjax-newcm-font/GUST-FONT-LICENSE.txt` and `LPPL-1.3c.txt`).
     The package's scripts are Apache License 2.0, as its `package.json` says.
-- The three colour-vision sample images in `public/colorblind/` have no
-  recorded source or licence yet.
+- The three colour-vision sample images in `public/colorblind/` are drawn for
+  this project by `scripts/draw-colorblind-images.mjs` and are under its MIT
+  licence. (They replace three earlier images whose source and licence were
+  never recorded: Ishihara-style plates, a chart figure and a professional
+  photograph of an NFL game.)
 
 ## License
 

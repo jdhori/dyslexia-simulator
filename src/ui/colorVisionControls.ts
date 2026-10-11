@@ -24,7 +24,7 @@ const OPTIONS: readonly OptionDef[] = [
   {
     value: "none",
     label: "Typical colour vision",
-    info: "The images as they were published, with no simulation applied. Roughly 92% of men and 99.5% of women see colour this way.",
+    info: "The images as they were drawn, with no simulation applied. Roughly 92% of men and 99.5% of women see colour this way.",
   },
   {
     value: "protanopia",
@@ -34,7 +34,7 @@ const OPTIONS: readonly OptionDef[] = [
   {
     value: "deuteranopia",
     label: "Deuteranopia",
-    info: "Green-blind: the medium-wavelength (green) cones are missing. Greens and reds merge into similar browns and yellows, so the Ishihara digits and the red-versus-green uniforms disappear. The most common form, affecting about 6% of men including milder cases.",
+    info: "Green-blind: the medium-wavelength (green) cones are missing. Greens and reds merge into similar browns and yellows, so the numbers in the red–green test plates and the difference between the red and green uniforms disappear. The most common form, affecting about 6% of men including milder cases.",
   },
   {
     value: "tritanopia",

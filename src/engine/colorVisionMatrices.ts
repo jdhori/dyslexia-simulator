@@ -1,8 +1,10 @@
 // The colour vision deficiency matrices, shared by the on-page simulation and
 // the bookmarklet so the two can never drift apart.
 //
-// These are the full-severity (1.0) Machado, Oliveira & Fernandes (2009)
-// linear-RGB approximations, with achromatopsia as a luminance-only matrix.
+// Protanopia, deuteranopia and tritanopia are the full-severity (1.0) Machado,
+// Oliveira & Fernandes (2009) linear-RGB matrices. Achromatopsia is not one of
+// theirs (the paper has no model for it): it is a plain greyscale, the same
+// luma weights on every channel. Say so wherever the filters are credited.
 
 export type ColorVisionKind =
   | "protanopia"
