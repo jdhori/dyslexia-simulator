@@ -187,15 +187,19 @@ main.wrap {
   padding-block: clamp(2rem, 1rem + 4vw, 4rem);
 }
 
+/* minmax(0, …) rather than a bare fr: a bare fr track never shrinks below its
+   content's min-content width, so the wide display equation (which scrolls
+   inside its own panel) would stretch the whole column and push the page
+   sideways on a phone (SC 1.4.10, Reflow). */
 .layout {
   display: grid;
-  grid-template-columns: 30fr 70fr; /* controls 30% / reading + math 70% */
+  grid-template-columns: minmax(0, 30fr) minmax(0, 70fr); /* controls 30% / reading + math 70% */
   gap: clamp(1.5rem, 1rem + 2vw, 3rem);
   align-items: start;
 }
 @media (max-width: 60rem) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -531,13 +535,6 @@ main.wrap {
 .math-surface__body {
   padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
   overflow-x: auto; /* display math can be wider than the column */
-}
-.math-surface .katex {
-  color: var(--ink);
-  font-size: 1.15em;
-}
-.math-surface .katex-display {
-  margin: 0;
 }
 .math-note {
   margin: 1rem 0 0;

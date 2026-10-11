@@ -9,3 +9,6 @@ dist-ssr
 .claude/
 CLAUDE.md
 .mcp.json
+
+# Copied from node_modules by scripts/vendor-mathjax.mjs before every build
+public/vendor/

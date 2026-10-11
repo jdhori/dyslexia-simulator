@@ -16,6 +16,7 @@ import {
 } from "./ui/bookmarklet";
 import { buildThemeToggle } from "./ui/themeToggle";
 import { announce } from "./ui/announce";
+import { watchScrollRegion } from "./ui/scrollRegion";
 
 const store = new SettingsStore(loadSettings());
 
@@ -93,6 +94,16 @@ const cvdControlsRoot = document.getElementById("cvd-controls-root");
 if (cvdControlsRoot) buildColorVisionControls(cvdControlsRoot, store);
 
 buildMathComparison(store);
+
+// --- the maths panels scroll sideways on a phone; keep that keyboard-reachable ---
+for (const [selector, label] of [
+  [".math-surface__body", "MathJax 2.7.7 equation"],
+  ["#mathml-equation", "Native MathML equation"],
+  ["#mathjax4-equation", "MathJax 4 equation"],
+] as const) {
+  const panel = document.querySelector<HTMLElement>(selector);
+  if (panel) watchScrollRegion(panel, label);
+}
 
 const bookmarkletRoot = document.getElementById("bookmarklet-root");
 if (bookmarkletRoot) buildBookmarklet(bookmarkletRoot, store);

@@ -1,5 +1,6 @@
-// The one equation used by every math demo on the page: the KaTeX simulator
-// demo, and the two labelled reference renderings (native MathML and MathJax).
+// The one equation used by every math demo on the page: the MathJax 2.7.7 SVG
+// demo, and the two labelled comparison renderings (native MathML and
+// MathJax 4).
 // Keeping it here means all three always show exactly the same maths.
 //
 // `aligned` with a leading `&` on each row left-aligns the lines (so the text

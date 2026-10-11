@@ -27,10 +27,37 @@
 // puts a real MathML copy of each equation in the accessibility tree and hides
 // the SVG from assistive technology. Without it, SVG maths is opaque to a
 // screen reader.
+//
+// Self-hosted: both versions, MathJax 4's font and its speech engine are
+// served from this app's own vendor/ folder, which scripts/vendor-mathjax.mjs
+// fills from the pinned npm packages before every build. So the page makes no
+// request to any other origin, and it runs under a content security policy of
+// script-src 'self' (plus worker-src blob:, as MathJax 4 starts its speech
+// worker from a blob: URL; see README). Every URL is built from the app's
+// base, so it works opened from the root of a site or from a sub-folder such
+// as /simulator/app/. engine/mathjaxCompat.ts holds the fixes that make both
+// versions behave under that policy and on a site with other MathJax pages.
 
-const MATHJAX2_SRC =
-  "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_SVG";
-const MATHJAX4_SRC = "https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js";
+import {
+  clearSelectionWithoutEval,
+  ignoreSharedMenuSettings,
+  storeMenuSettingsLocally,
+  type MathJax2Cookie,
+  type MathJax2Events,
+} from "./mathjaxCompat";
+
+/** This app's vendor/ folder, as an absolute URL with no trailing slash. */
+const VENDOR_ROOT = new URL(
+  `${import.meta.env.BASE_URL}vendor`,
+  document.baseURI,
+).href;
+
+const MATHJAX2_ROOT = `${VENDOR_ROOT}/mathjax2`;
+const MATHJAX2_SRC = `${MATHJAX2_ROOT}/MathJax.js?config=TeX-MML-AM_SVG`;
+const MATHJAX4_ROOT = `${VENDOR_ROOT}/mathjax4`;
+const MATHJAX4_SRC = `${MATHJAX4_ROOT}/tex-mml-chtml.js`;
+/** MathJax 4's default font, which it would otherwise fetch from a CDN. */
+const MATHJAX4_FONT = `${VENDOR_ROOT}/mathjax-newcm-font`;
 
 interface MathJax2Hub {
   Queue: (...args: unknown[]) => void;
@@ -90,16 +117,34 @@ export function loadMathJax2(): Promise<MathJax2> {
     // skipStartupTypeset keeps it off the rest of the page — we hand it only
     // the elements we want typeset.
     window.MathJax = {
+      // Load every extension, font and output from the local copy. (2.7.7
+      // also works this out from its script's URL; saying so keeps it true
+      // whatever the page's base.)
+      root: MATHJAX2_ROOT,
       jax: ["input/TeX", "output/SVG"],
       extensions: ["tex2jax.js", "MathMenu.js", "MathZoom.js", "AssistiveMML.js"],
       TeX: {
         extensions: ["AMSmath.js", "AMSsymbols.js", "noErrors.js", "noUndefined.js"],
       },
       SVG: { scale: 100, useFontCache: true, font: "TeX" },
+      // The menu's Math Renderer list can switch to HTML-CSS. Hold it to the
+      // TeX web fonts that are copied locally: no hunt for STIX fonts
+      // installed on the visitor's computer (whose data is not copied) and
+      // no fallback to image fonts (not copied either).
+      "HTML-CSS": {
+        availableFonts: ["TeX"],
+        preferredFont: "TeX",
+        webFont: "TeX",
+        imageFont: null,
+      },
+      // Only English is copied locally, so the menu offers no other language.
+      MathMenu: { showLocale: false },
       showMathMenu: true,
       menuSettings: { assistiveMML: true },
       skipStartupTypeset: true,
       messageStyle: "none",
+      // Runs once MathJax has defined itself, before it reads any settings.
+      AuthorInit: prepareMathJax2,
     };
 
     await injectScript(MATHJAX2_SRC);
@@ -110,6 +155,28 @@ export function loadMathJax2(): Promise<MathJax2> {
   })();
 
   return v2Loader;
+}
+
+/**
+ * 2.7.7's AuthorInit hook: runs once MathJax has defined itself, before it
+ * reads any settings or loads any extension.
+ */
+function prepareMathJax2(): void {
+  const mj = window.MathJax as
+    | {
+        HTML?: { Cookie?: MathJax2Cookie };
+        Hub?: { Register?: { StartupHook?: (hook: string, fn: () => void) => void } };
+        Extension?: { MathEvents?: MathJax2Events };
+      }
+    | undefined;
+  if (!mj) return;
+  // The menu remembers its choices in localStorage, not in a site-wide cookie.
+  if (mj.HTML?.Cookie) storeMenuSettingsLocally(mj.HTML.Cookie, () => window.localStorage);
+  // Opening the menu clears the selection without a string timer, which the
+  // site's CSP (no 'unsafe-eval') would block and report.
+  mj.Hub?.Register?.StartupHook?.("MathEvents Ready", () => {
+    clearSelectionWithoutEval(mj.Extension?.MathEvents, window);
+  });
 }
 
 /** Typeset with 2.7.7. The element's text must already hold the TeX. */
@@ -150,7 +217,30 @@ async function borrowForMathJax4<T>(
 
   const previous = window.MathJax;
   window.MathJax = v4Api ?? {
-    startup: { typeset: false },
+    // Local copies of everything MathJax 4 would otherwise fetch from a CDN:
+    // its own components ([mathjax], which also holds the speech engine,
+    // [sre], and its maps) and its default font, mathjax-newcm, whose glyph
+    // ranges and woff2 files arrive on demand. Naming the font's path
+    // directly matters: left to itself, MathJax 4 builds it from [fonts],
+    // which points at a CDN.
+    loader: {
+      paths: {
+        mathjax: MATHJAX4_ROOT,
+        fonts: VENDOR_ROOT,
+        "mathjax-newcm": MATHJAX4_FONT,
+      },
+    },
+    startup: {
+      typeset: false,
+      // Before the document (and its menu) is created: ignore the menu
+      // settings that other MathJax pages on the same site keep in
+      // localStorage. See ignoreSharedMenuSettings.
+      ready() {
+        const mj = window.MathJax as { startup?: { defaultReady?: () => void } };
+        ignoreSharedMenuSettings(mj);
+        mj.startup?.defaultReady?.();
+      },
+    },
     // 2.7.7 owns the page's menu; a second one would only confuse.
     //
     // enableAssistiveMml is deliberately NOT set here. It makes MathJax fetch
