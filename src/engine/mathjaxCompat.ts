@@ -34,11 +34,15 @@ const PLAIN_VALUE_TYPES = new Set(["string", "number", "boolean"]);
  *
  * @param storage returns the storage to use; it may throw or return null
  *   where storage is blocked, and the menu then forgets its choices on reload.
+ * @param options.ignore settings the page pins: never saved and never read
+ *   back, whatever an earlier visit stored (the loader pins the renderer).
  */
 export function storeMenuSettingsLocally(
   cookie: MathJax2Cookie,
   storage: () => KeyValueStorage | null,
+  { ignore = [] }: { ignore?: readonly string[] } = {},
 ): void {
+  const ignored = new Set(ignore);
   const open = (): KeyValueStorage | null => {
     try {
       return storage();
@@ -48,8 +52,11 @@ export function storeMenuSettingsLocally(
   };
 
   cookie.Set = (name, values = {}) => {
+    const kept = Object.fromEntries(
+      Object.entries(values).filter(([key]) => !ignored.has(key)),
+    );
     try {
-      open()?.setItem(`${MENU_STORAGE_PREFIX}${name}`, JSON.stringify(values));
+      open()?.setItem(`${MENU_STORAGE_PREFIX}${name}`, JSON.stringify(kept));
     } catch {
       // Storage blocked or full: the choice lasts until the page closes.
     }
@@ -64,7 +71,7 @@ export function storeMenuSettingsLocally(
     }
     if (stored && typeof stored === "object" && !Array.isArray(stored)) {
       for (const [key, value] of Object.entries(stored)) {
-        if (UNSAFE_KEYS.has(key)) continue;
+        if (UNSAFE_KEYS.has(key) || ignored.has(key)) continue;
         if (PLAIN_VALUE_TYPES.has(typeof value)) into[key] = value;
       }
     }
@@ -186,4 +193,136 @@ export function ignoreSharedMenuSettings(mathJax: unknown): boolean {
   Menu.prototype.mergeUserSettings = () => {};
   Menu.prototype.saveUserSettings = () => {};
   return true;
+}
+
+/** The parts of MathJax 2.7.7 that holdMathJax2Queue uses. */
+export interface MathJax2Queueing {
+  Hub: { Queue: (...items: unknown[]) => unknown };
+  /** MathJax.Callback: wraps a function as a callback its queues can wait on. */
+  Callback: (fn: () => void) => () => void;
+}
+
+/** setTimeout and clearTimeout, as window has them. */
+export interface Timers {
+  setTimeout(handler: () => void, ms: number): unknown;
+  clearTimeout(id: unknown): void;
+}
+
+/**
+ * Wait until MathJax 2.7.7's Hub queue is idle, then hold it there until the
+ * returned function is called.
+ *
+ * The loader runs its own 2.7.7 typesetting and MathJax 4's borrow of
+ * window.MathJax through one serial chain, so they never overlap. 2.7.7's
+ * menu does not use that chain: Scale All Math and the Accessibility items
+ * queue a re-render on 2.7.7's own Hub queue. One that ran while MathJax 4
+ * held the global read MathJax.OutputJax off MathJax 4's object, threw, and
+ * left display 1 blank. Holding 2.7.7's queue for the length of the borrow
+ * makes such a re-render wait its turn instead, and waiting for it to go idle
+ * first keeps the borrow from starting in the middle of one.
+ *
+ * If the queue has not reached this hold within `timeoutMs` (a job stuck on a
+ * file that never arrives, say), the promise resolves anyway, so MathJax 4 is
+ * not kept waiting for ever, and the hold, once the queue does reach it,
+ * holds nothing.
+ *
+ * @returns a promise of the function that releases the queue
+ */
+export function holdMathJax2Queue(
+  mathJax2: MathJax2Queueing,
+  { timeoutMs = 10_000, timers }: { timeoutMs?: number; timers: Timers },
+): Promise<() => void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let gate: (() => void) | null = null;
+    const release = (): void => {
+      settled = true;
+      const open = gate;
+      gate = null;
+      open?.();
+    };
+    const timer = timers.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(release);
+    }, timeoutMs);
+    // A queued function that returns a MathJax callback not yet called holds
+    // the queue until that callback is called.
+    mathJax2.Hub.Queue(() => {
+      timers.clearTimeout(timer);
+      if (settled) return undefined;
+      settled = true;
+      gate = mathJax2.Callback(() => {});
+      resolve(release);
+      return gate;
+    });
+  });
+}
+
+/**
+ * What to put on window.MathJax while MathJax 4's script is fetched and run:
+ * MathJax 4's configuration, which also answers for 2.7.7.
+ *
+ * MathJax 4 reads window.MathJax as its configuration when its script runs,
+ * so the configuration has to be in place from the moment the script is
+ * requested. Over a slow connection that is seconds, and 2.7.7's own code
+ * keeps reading window.MathJax meanwhile: its menu above all, which a reader
+ * may open at any moment. With MathJax 4's bare configuration there,
+ * right-clicking display 1 threw "MathJax.Callback is not a function" and no
+ * menu opened, and the menu's own items threw in the same way.
+ *
+ * So the global is a view of the configuration that lends 2.7.7's keys
+ * (Hub, Callback, OutputJax and the rest) for any name the configuration
+ * does not have. Its own keys, and so what MathJax 4 enumerates, are only
+ * the configuration's; and it never lends `version`, which is how MathJax 4
+ * tells a configuration (no version) from a MathJax that has already loaded.
+ * MathJax 4 keeps the object as MathJax.config once it runs, so call `stop`
+ * then: from there it is the plain configuration again.
+ *
+ * @param mathJax2 2.7.7's API object, or null if it did not load
+ */
+export function lendMathJax2Keys<T extends object>(
+  config: T,
+  mathJax2: object | null,
+): { global: T; stop: () => void } {
+  if (!mathJax2) return { global: config, stop: () => {} };
+  const lender = mathJax2;
+  let lending = true;
+  const lends = (target: object, key: PropertyKey): boolean =>
+    lending && key !== "version" && !(key in target) && key in lender;
+  const global = new Proxy(config, {
+    get: (target, key, receiver) =>
+      lends(target, key) ? Reflect.get(lender, key) : Reflect.get(target, key, receiver),
+    has: (target, key) => lends(target, key) || Reflect.has(target, key),
+  });
+  return {
+    global,
+    stop: () => {
+      lending = false;
+    },
+  };
+}
+
+/** Anything with Node#contains. */
+export interface ContainingNode {
+  contains(other: unknown): boolean;
+}
+
+const isContainingNode = (value: unknown): value is ContainingNode =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as ContainingNode).contains === "function";
+
+/**
+ * Whether a typeset reached `element`: true if `elements` (one element or a
+ * list, as 2.7.7's "End Math" message carries them) holds the element, an
+ * ancestor of it or a descendant of it.
+ */
+export function coversElement(elements: unknown, element: ContainingNode): boolean {
+  const list: unknown[] = Array.isArray(elements) ? elements : [elements];
+  return list.some(
+    (el) =>
+      isContainingNode(el) &&
+      (el === element || el.contains(element) || element.contains(el)),
+  );
 }

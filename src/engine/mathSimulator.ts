@@ -24,7 +24,7 @@
 
 import { isMotionAllowed } from "./motion";
 import { amp, periodMs } from "./cssParams";
-import { loadMathJax2, typeset2 } from "./mathjaxLoader";
+import { loadMathJax2, onRetypeset2, typeset2 } from "./mathjaxLoader";
 import type { Settings } from "../state";
 
 const STATIC_PASSES = 6;
@@ -60,17 +60,37 @@ export class MathSimulator {
       // MathJax 2 typesets the TeX it finds in the element's text.
       this.container.textContent = `\\[${this.latex}\\]`;
       await typeset2(mj, this.container);
-      this.host = this.container.querySelector<HTMLElement>(".MathJax_SVG");
-      if (!this.host) return;
-      this.host.classList.add("sim-visual", "sim-math");
-      this.collectGlyphs();
-      this.ready = true;
-      this.container.dataset.mathState = "ready";
-      if (this.settings) this.apply(this.settings);
+      // 2.7.7 can render the equation again by itself: its menu's Scale All
+      // Math and Accessibility items replace the output this simulation
+      // drives. Follow the new output each time.
+      onRetypeset2(mj, this.container, () => this.attach());
+      this.attach();
     } catch {
       // Leave the TeX visible as plain text rather than an empty panel.
       this.container.dataset.mathState = "failed";
     }
+  }
+
+  /** Take over the SVG output now in the container, if it is a new one. */
+  private attach(): void {
+    const host = this.container.querySelector<HTMLElement>(".MathJax_SVG");
+    if (host && host === this.host) return;
+    this.clearTimer();
+    this.host = host;
+    this.glyphs = [];
+    this.ready = false;
+    if (!host) {
+      // Typeset, but not as SVG: nothing here the simulation can drive. (The
+      // loader pins the renderer to SVG, so this should not happen; if it
+      // does, say so rather than claim to be ready.)
+      this.container.dataset.mathState = "failed";
+      return;
+    }
+    host.classList.add("sim-visual", "sim-math");
+    this.collectGlyphs();
+    this.ready = true;
+    this.container.dataset.mathState = "ready";
+    if (this.settings) this.apply(this.settings);
   }
 
   apply(settings: Settings): void {

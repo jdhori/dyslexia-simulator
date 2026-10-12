@@ -16,6 +16,8 @@ import {
   MATRICES,
   toFeMatrix,
 } from "../engine/colorVisionMatrices";
+import { announce } from "./announce";
+import { COPY_LABEL, copyCode } from "./copyCode";
 
 interface BookmarkletParts {
   link: HTMLAnchorElement;
@@ -59,9 +61,15 @@ function render(
   const copy = document.createElement("button");
   copy.type = "button";
   copy.className = "btn";
-  copy.textContent = "Copy code";
+  copy.textContent = COPY_LABEL;
+  // The outcome goes to the page's live region as well as onto the button;
+  // see ui/copyCode.ts.
   copy.addEventListener("click", () => {
-    void copyToClipboard(code, copy);
+    void copyCode(code, copy, {
+      clipboard: navigator.clipboard,
+      announce,
+      timers: window,
+    });
   });
 
   codeWrap.append(codeLabel, code, copy);
@@ -73,7 +81,7 @@ export function buildBookmarklet(root: HTMLElement, store: SettingsStore): void 
   const { link, code } = render(root, {
     title: "Dyslexia simulator",
     noteId: "bookmarklet-note",
-    note: "Drag the button to your bookmarks bar, then click it on any page to start the letter scramble; click again to stop. Some sites block bookmarklets with a strict content-security-policy.",
+    note: "Drag the button to your bookmarks bar, then click it on any page to start the letter scramble; click again to stop. Unlike the demos here, it changes the page’s own text: until you click it again, a screen reader reads the scrambled words, and voice commands stop matching the names of links and buttons. Some sites block bookmarklets with a strict content-security-policy.",
     codeId: "bookmarklet-source",
   });
 
@@ -100,27 +108,6 @@ export function buildColorVisionBookmarklet(root: HTMLElement): void {
   code.value = href;
 }
 
-
-async function copyToClipboard(
-  code: HTMLTextAreaElement,
-  button: HTMLButtonElement,
-): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(code.value);
-    flash(button, "Copied!");
-  } catch {
-    code.select();
-    flash(button, "Press Ctrl/Cmd + C");
-  }
-}
-
-function flash(button: HTMLButtonElement, message: string): void {
-  const original = "Copy code";
-  button.textContent = message;
-  window.setTimeout(() => {
-    button.textContent = original;
-  }, 1500);
-}
 
 function buildPayload(settings: Settings): string {
   // Always the letter scramble — this bookmarklet is the original demo and does

@@ -22,9 +22,11 @@
 // MathJax 2.7.7 (TeX input, SVG output, the menu, zoom and AssistiveMML):
 //   - its TeX fonts only. The menu's Font Preference list is hidden by
 //     default, so STIX, Asana, Gyre, Latin Modern and Neo Euler never load.
-//   - every output the menu's Math Renderer list can switch to (HTML-CSS,
-//     Common HTML, Preview HTML, MathML, SVG, Plain Source), since the page
-//     tells readers to use that list. HTML-CSS and Common HTML get the woff
+//   - every output 2.7.7's Math Renderer list can switch to (HTML-CSS,
+//     Common HTML, Preview HTML, MathML, SVG, Plain Source). The page now
+//     pins its demo to SVG and hides that list (src/engine/mathjaxLoader.ts),
+//     so no reader can switch to the others any more; they are still copied,
+//     and could be dropped. HTML-CSS and Common HTML get the woff
 //     fonts: their @font-face rules name woff first, and every browser that
 //     runs this app reads woff, so the eot and svg copies and the png image
 //     fonts are left out. The MathML renderer is the exception: its

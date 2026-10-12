@@ -23,6 +23,16 @@
 // moment. Every job here therefore goes through one serial chain, and each job
 // installs the global its own version expects before it starts.
 //
+// 2.7.7's menu works outside that chain, so the borrow guards against it too.
+// It waits for 2.7.7's own queue to go idle and holds it until the borrow
+// ends, so a re-render the menu queues (Scale All Math, the Accessibility
+// items) waits its turn; and while MathJax 4's script loads, the global still
+// answers for 2.7.7's keys, so the menu opens and its items run. Display 1's
+// renderer is pinned to SVG, the one output the simulation can drive: the
+// menu's Math Renderer list is hidden, and a renderer saved by an earlier
+// visit is ignored. engine/mathSimulator.ts follows display 1 through any
+// re-render 2.7.7 does by itself (onRetypeset2).
+//
 // Accessibility: the AssistiveMML extension is enabled on 2.7.7, so MathJax
 // puts a real MathML copy of each equation in the accessibility tree and hides
 // the SVG from assistive technology. Without it, SVG maths is opaque to a
@@ -40,13 +50,24 @@
 
 import {
   clearSelectionWithoutEval,
+  coversElement,
+  holdMathJax2Queue,
   ignoreSharedMenuSettings,
+  lendMathJax2Keys,
   loadMenuDuringStartup,
   storeMenuSettingsLocally,
   type MathJax2Cookie,
   type MathJax2Events,
+  type MathJax2Queueing,
   type MathJax2Startup,
 } from "./mathjaxCompat";
+
+/**
+ * 2.7.7 menu settings this page pins, so neither an earlier visit's saved
+ * choice nor anything else brings them back: the renderer (the simulation
+ * drives SVG output only) and whether the menu lists renderers at all.
+ */
+const PINNED_MENU_SETTINGS = ["renderer", "showRenderer"] as const;
 
 /** This app's vendor/ folder, as an absolute URL with no trailing slash. */
 const VENDOR_ROOT = new URL(
@@ -62,10 +83,14 @@ const MATHJAX4_SRC = `${MATHJAX4_ROOT}/tex-mml-chtml.js`;
 const MATHJAX4_FONT = `${VENDOR_ROOT}/mathjax-newcm-font`;
 
 interface MathJax2Hub {
-  Queue: (...args: unknown[]) => void;
-  Register: { StartupHook: (hook: string, fn: () => void) => void };
+  Queue: (...args: unknown[]) => unknown;
+  Register: {
+    StartupHook: (hook: string, fn: () => void) => void;
+    /** Calls `fn` with each message of that type, e.g. ["End Math", elements, action]. */
+    MessageHook: (type: string, fn: (message: unknown) => void) => void;
+  };
 }
-export interface MathJax2 {
+export interface MathJax2 extends MathJax2Queueing {
   Hub: MathJax2Hub;
   version: string;
 }
@@ -130,10 +155,10 @@ export function loadMathJax2(): Promise<MathJax2> {
         extensions: ["AMSmath.js", "AMSsymbols.js", "noErrors.js", "noUndefined.js"],
       },
       SVG: { scale: 100, useFontCache: true, font: "TeX" },
-      // The menu's Math Renderer list can switch to HTML-CSS. Hold it to the
-      // TeX web fonts that are copied locally: no hunt for STIX fonts
-      // installed on the visitor's computer (whose data is not copied) and
-      // no fallback to image fonts (not copied either).
+      // Should anything still select HTML-CSS (the menu no longer can; see
+      // below), hold it to the TeX web fonts that are copied locally: no hunt
+      // for STIX fonts installed on the visitor's computer (whose data is not
+      // copied) and no fallback to image fonts (not copied either).
       "HTML-CSS": {
         availableFonts: ["TeX"],
         preferredFont: "TeX",
@@ -141,7 +166,10 @@ export function loadMathJax2(): Promise<MathJax2> {
         imageFont: null,
       },
       // Only English is copied locally, so the menu offers no other language.
-      MathMenu: { showLocale: false },
+      // And no Math Renderer list: the simulation drives the SVG output only,
+      // so another renderer would leave display 1 unsimulated (the renderer
+      // an earlier visit saved is ignored too; see prepareMathJax2).
+      MathMenu: { showLocale: false, showRenderer: false },
       showMathMenu: true,
       menuSettings: { assistiveMML: true },
       skipStartupTypeset: true,
@@ -183,8 +211,15 @@ function prepareMathJax2(): void {
   // Startup loads the menu's phrases itself, instead of leaving them on a
   // timer that would fire while MathJax 4 holds the global.
   loadMenuDuringStartup(mj);
-  // The menu remembers its choices in localStorage, not in a site-wide cookie.
-  if (mj.HTML?.Cookie) storeMenuSettingsLocally(mj.HTML.Cookie, () => window.localStorage);
+  // The menu remembers its choices in localStorage, not in a site-wide cookie,
+  // apart from the settings this page pins: a visitor who switched display 1
+  // to HTML-CSS when the menu still offered it would otherwise get HTML-CSS,
+  // unsimulated, on every visit.
+  if (mj.HTML?.Cookie) {
+    storeMenuSettingsLocally(mj.HTML.Cookie, () => window.localStorage, {
+      ignore: PINNED_MENU_SETTINGS,
+    });
+  }
   // Opening the menu clears the selection without a string timer, which the
   // site's CSP (no 'unsafe-eval') would block and report.
   mj.Hub?.Register?.StartupHook?.("MathEvents Ready", () => {
@@ -195,12 +230,35 @@ function prepareMathJax2(): void {
 /** Typeset with 2.7.7. The element's text must already hold the TeX. */
 export function typeset2(mj: MathJax2, element: HTMLElement): Promise<void> {
   return serial(() => {
-    // Make sure the global is 2.7.7's before its queue runs — MathJax 4 may
-    // have borrowed it for the panel below.
-    if (mathJax2Global) window.MathJax = mathJax2Global;
+    // Make sure the global has 2.7.7's keys before its queue runs (merged
+    // with MathJax 4's, once that has loaded; see settledGlobal).
+    if (mathJax2Global) window.MathJax = settledGlobal(window.MathJax);
     return new Promise<void>((resolve) => {
       mj.Hub.Queue(["Typeset", mj.Hub, element], resolve);
     });
+  });
+}
+
+/**
+ * Call `fn` each time 2.7.7 finishes typesetting maths in or around
+ * `element`, by any route: typeset2 here, or a re-render 2.7.7's menu starts
+ * by itself (Scale All Math, and the Accessibility items, which re-process
+ * every equation on the page). Each of those replaces the element's output.
+ */
+export function onRetypeset2(
+  mj: MathJax2,
+  element: HTMLElement,
+  fn: () => void,
+): void {
+  mj.Hub.Register.MessageHook("End Math", (message) => {
+    // ["End Math", elements, action]: one element or a list of them.
+    const elements = Array.isArray(message) ? message[1] : undefined;
+    if (!coversElement(elements, element)) return;
+    try {
+      fn();
+    } catch {
+      // Never let the simulation break 2.7.7's queue, which runs this hook.
+    }
   });
 }
 
@@ -222,14 +280,47 @@ async function borrowForMathJax4<T>(
 ): Promise<T> {
   // Let 2.7.7 settle first, so the demo never waits on this and the global we
   // borrow is the finished one.
+  let v2: MathJax2 | null = null;
   try {
-    await v2Loader;
+    v2 = await v2Loader;
   } catch {
     // 2.7.7 failing does not stop 4 from rendering its own panel.
   }
+  // Then wait for 2.7.7's own queue to go idle, and hold it for the whole
+  // borrow: a re-render its menu queues now waits until the global is back.
+  const releaseMathJax2 = v2
+    ? await holdMathJax2Queue(v2, { timers: window })
+    : () => {};
 
   const previous = window.MathJax;
-  window.MathJax = v4Api ?? {
+  // Until MathJax 4's script has run, the global is its configuration, which
+  // also answers for 2.7.7's keys, so 2.7.7's menu keeps working meanwhile.
+  const lent = v4Api ? null : lendMathJax2Keys(mathJax4Config(), v2);
+  window.MathJax = lent ? lent.global : settledGlobal(previous);
+
+  try {
+    if (!v4Loader) v4Loader = injectScript(MATHJAX4_SRC);
+    await v4Loader;
+    lent?.stop();
+    const mj = (v4Api ?? window.MathJax) as MathJax4 | undefined;
+    if (!mj?.typesetPromise) throw new Error("MathJax 4 API is missing");
+    v4Api = mj;
+    // From here on both versions find what they look for in the merged
+    // global (see settledGlobal): MathJax 4's own code keeps the object it
+    // made, and only its lazily loaded font ranges read the global, for `_`.
+    window.MathJax = settledGlobal(previous);
+    await mj.startup?.promise;
+    return await job(mj);
+  } finally {
+    lent?.stop();
+    window.MathJax = settledGlobal(previous);
+    releaseMathJax2();
+  }
+}
+
+/** MathJax 4's configuration, read from window.MathJax when its script runs. */
+function mathJax4Config(): Record<string, unknown> {
+  return {
     // Local copies of everything MathJax 4 would otherwise fetch from a CDN:
     // its own components ([mathjax], which also holds the speech engine,
     // [sre], and its maps) and its default font, mathjax-newcm, whose glyph
@@ -263,18 +354,6 @@ async function borrowForMathJax4<T>(
     // page's own MathML instead; see ui/mathComparison.ts.
     options: { enableMenu: false },
   };
-
-  try {
-    if (!v4Loader) v4Loader = injectScript(MATHJAX4_SRC);
-    await v4Loader;
-    const mj = window.MathJax as MathJax4 | undefined;
-    if (!mj?.typesetPromise) throw new Error("MathJax 4 API is missing");
-    v4Api = mj;
-    await mj.startup?.promise;
-    return await job(mj);
-  } finally {
-    window.MathJax = settledGlobal(previous);
-  }
 }
 
 /**

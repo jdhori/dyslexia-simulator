@@ -63,7 +63,7 @@ if (tableEl) {
   applyTable();
 }
 
-// --- math content demo: words scramble, the equation itself stays intact ---
+// --- math content demo: its letters and digits scramble; its layout stays put ---
 const mathRoot = document.getElementById("math-root");
 if (mathRoot) {
   const math = new MathSimulator(mathRoot, MATH_LATEX);

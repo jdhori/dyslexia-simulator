@@ -110,8 +110,11 @@
           <div class="math-demo">
             <h3 class="math-heading">Math content</h3>
             <p class="section-note">
-              Applied to math, the scramble garbles the words but leaves the
-              equation itself intact. Perception, Visual wobble, and Blur /
+              Applied to math, the scramble is a full anagram: every letter and
+              digit in the equation, the variables and the ones in subscripts
+              and superscripts included, trades places with another, while the
+              layout — the braces, the vector arrows, the sub- and superscript
+              positions — stays put. Perception, Visual wobble, and Blur /
               focus drift are available for math content too. Crowding, Jumping
               letters, and Letter fragments are not — they would wreck an
               equation rather than simulate reading one.
@@ -132,8 +135,9 @@
                   ><strong>MathJax 2.7.7, SVG output</strong> — the simulated
                   demo. Right-click the equation (or press <kbd>Shift</kbd> +
                   <kbd>F10</kbd>) to open MathJax&rsquo;s own menu, where the
-                  renderer, the zoom and the assistive MathML can all be
-                  changed.</span
+                  zoom, the size of all the maths and the assistive MathML can
+                  be changed. The renderer stays SVG, the output the
+                  simulation runs on.</span
                 >
               </p>
               <div class="math-surface__body">
@@ -161,13 +165,16 @@
               capitalization is announced by an audio tone or a shift in pitch,
               set in the screen reader&rsquo;s own settings. General
               text-to-speech, by contrast, reads the words and Greek letters but
-              not the math symbols. If an equation is ever served as a bare SVG
-              with no MathML behind it, it is unreadable — right-click it (or
-              press <kbd>Shift</kbd> + <kbd>F10</kbd>) and choose
+              not the math symbols. If an equation elsewhere — in a Canvas
+              course, say — is ever served as a bare SVG with no MathML behind
+              it, it is unreadable: right-click it (or press
+              <kbd>Shift</kbd> + <kbd>F10</kbd>) and choose
               <span class="menu-path"
                 >Math Settings → Math Renderer → HTML-CSS</span
               >
-              so it can be read.
+              so it can be read. This page leaves that item out of its own
+              menu: its equation already carries MathML, and the simulation
+              runs on the SVG.
             </p>
 
             <div class="math-compare">

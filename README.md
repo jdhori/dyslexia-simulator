@@ -56,7 +56,11 @@ effects can be compared across renderers:
    Canvas LMS ships, so an equation authored for a Canvas course behaves here
    as it does there, and SVG draws stretchy delimiters as one continuous
    curve. Its own menu (right-click, or <kbd>Shift</kbd> + <kbd>F10</kbd>)
-   can switch the renderer, the zoom and the assistive MathML.
+   can change the zoom, the size of all the maths (Scale All Math) and the
+   assistive MathML, and the simulation follows the equation through every
+   re-render the menu starts. The renderer is pinned to SVG, the output the
+   simulation drives: the menu's Math Renderer list is hidden, and a renderer
+   saved by an earlier visit is ignored.
 2. **Native MathML** — static markup laid out by the browser itself, also
    simulated (on a copy, so the real equation stays in the accessibility tree).
 3. **MathJax 4, CommonHTML output** — the current MathJax, left unsimulated as
@@ -120,7 +124,9 @@ readable:
 - **The real text is never lost.** The visible, animated layer is `aria-hidden`;
   an off-screen, unaltered copy stays in the accessibility tree (and a clean
   MathML copy of every rendering of the equation), so screen-reader users
-  always get the correct content and never hear scrambled letters.
+  always get the correct content and never hear scrambled letters. (The
+  Dyslexia bookmarklet is the one exception: on the page it runs in, it
+  changes the real text; see [The bookmarklets](#the-bookmarklets).)
 - **Reduced motion is respected.** With `prefers-reduced-motion`, live animation
   is paused and a single static snapshot is shown; an “Animate anyway” control
   lets a user opt back in.
@@ -150,7 +156,7 @@ served from the app's own `vendor/` folder:
 
 | Package (devDependency, exact version) | Copied to | Used for |
 |---|---|---|
-| `mathjax2` → `mathjax@2.7.7` | `vendor/mathjax2/` | the SVG demo, its menu and zoom, and every renderer and accessibility tool the menu offers |
+| `mathjax2` → `mathjax@2.7.7` | `vendor/mathjax2/` | the SVG demo, its menu and zoom, and every accessibility tool the menu offers (plus the other output renderers, which the menu no longer offers) |
 | `mathjax4` → `mathjax@4.1.3` | `vendor/mathjax4/` | the CommonHTML panel, with its speech engine (`sre/`) |
 | `@mathjax/mathjax-newcm-font@4.1.3` | `vendor/mathjax-newcm-font/` | MathJax 4's default font, which it would otherwise fetch from a CDN |
 
@@ -163,15 +169,22 @@ whose installed version differs from the pin. The script's header lists what
 is left out and why; `test/vendor-mathjax.test.mjs` checks it.
 
 `src/engine/mathjaxLoader.ts` points both versions at those copies through
-`import.meta.env.BASE_URL`, and `src/engine/mathjaxCompat.ts` holds four
+`import.meta.env.BASE_URL`, and `src/engine/mathjaxCompat.ts` holds the
 small fixes for sharing a page and a site:
 
 - MathJax 2.7.7 loads its menu's phrases during startup, not on a timer a
   second later: the timer fired while MathJax 4 held `window.MathJax`, and
   2.7.7 then threw "MathJax.Callback is not a function". The loader also
   waits for 2.7.7's startup to finish before MathJax 4 borrows the global;
+- MathJax 4's borrow of `window.MathJax` also waits for 2.7.7's own queue to
+  go idle and holds it until the borrow ends, so a re-render 2.7.7's menu
+  queues (Scale All Math, the Accessibility items) waits its turn instead of
+  running against MathJax 4's object, which left display 1 blank; and while
+  MathJax 4's script loads, the global answers for 2.7.7's keys as well, so
+  the menu opens and its items work meanwhile;
 - MathJax 2.7.7's menu keeps its settings in `localStorage` (`mjx.menu`)
-  instead of a year-long, site-wide cookie;
+  instead of a year-long, site-wide cookie, except the renderer, which the
+  page pins to SVG and never reads back;
 - opening that menu no longer passes a string to `setTimeout`, which a policy
   without `'unsafe-eval'` blocks and reports;
 - MathJax 4 ignores the menu settings that other MathJax 3 or 4 pages on the
@@ -208,11 +221,20 @@ sends nothing anywhere.
   (typoglycemia) — the behaviour of the 2016 demo — because the other effects
   can’t be applied safely to arbitrary pages. Click it once to start, again to
   stop; its speed and intensity follow the page’s Letter scramble controls.
+  Unlike the demos on this page, it changes the page’s own text, with no
+  `aria-hidden` layer: until it is clicked again, a screen reader reads the
+  scrambled words, and voice commands stop matching the names of links and
+  buttons. Its note in the app says so.
 - **Colour blindness simulator** filters the whole page through the same
   matrices as the colour-vision section. Each click moves to the next
   deficiency, and a fifth click clears it.
 
 Some sites block bookmarklets with a strict content-security-policy.
+
+Each one's **Copy code** button says whether it worked through the page's
+live region (`src/ui/copyCode.ts`), as well as on the button: when the
+browser refuses the clipboard, the code is selected instead and the message
+says to press Control + C (Command + C on a Mac).
 
 ## Project structure
 
@@ -244,6 +266,7 @@ src/
     mathComparison.ts     # the native MathML and MathJax 4 panels
     scrollRegion.ts       # keyboard access for maths panels that scroll sideways
     bookmarklet.ts        # both bookmarklet generators
+    copyCode.ts           # their Copy code button, announced in the live region
     themeToggle.ts        # fixed day/night toggle
     announce.ts           # screen-reader live region
 scripts/
