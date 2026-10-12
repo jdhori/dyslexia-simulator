@@ -9,13 +9,15 @@
 // plate's number vanishes under the filters it is meant to vanish under and
 // stays under the rest, and the chart's series merge.
 //
-// The third is a photograph of the 2015 Jets vs Bills "Color Rush" game,
-// whose photographer and rights holder are not identified. It is shown as
-// fair use, for education and commentary about colour-vision accessibility
-// (17 U.S.C. section 107), and these tests keep its credit honest: the file is
-// the one the credit describes, the credit under it says what it shows and on
-// what basis it is used, and nothing claims a licence or an author it does
-// not have.
+// The third is a photograph of the 2015 Jets vs Bills "Color Rush" game: a
+// USA TODAY Sports Images (USATSI) photograph, as published by CBS Sports in
+// John Breech's article of 12 November 2015, which credits it to USATSI. It is
+// shown as fair use, for education and commentary about colour-vision
+// accessibility (17 U.S.C. section 107), with no licence claimed, and these
+// tests keep its credit honest: the file is the one the credit describes, the
+// credit under it says what it shows, whose it is and on what basis it is
+// used, the article is listed under References at the end of the page, and
+// nothing claims a licence or names a photographer the source does not.
 //
 // Run with `npm test` (Node 22.18 or later runs the TypeScript directly).
 import { test, describe } from "node:test";
@@ -43,6 +45,13 @@ const VIEWS = ["none", ...KINDS];
 const PHOTO = "football.webp";
 const PHOTO_SHA256 = "85501c07921c2c24c26304757351db4600ff77b17fb90fb72efa3e3a999a3752";
 
+/** The photograph's source: the CBS Sports article that published it, credited there to USATSI. */
+const SOURCE = Object.freeze({
+  url: "https://www.cbssports.com/nfl/news/look-bills-jets-game-is-complete-torture-for-color-blind-people/",
+  headline: "LOOK: Bills-Jets game is complete torture for color-blind people",
+});
+const SOURCE_HREF = new RegExp(`<a\\s+href="${SOURCE.url.replace(/[.?]/g, "\\$&")}"`);
+
 /** The gallery's images, in the order it shows them. */
 const GALLERY = ["plates.svg", "charts.svg", PHOTO];
 
@@ -64,8 +73,15 @@ const words = (html) =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** Wording that would claim a licence or an author nobody has established. */
-const CLAIMS = /\blicen[cs]ed\b|\bunder (?:the |a |an )?(?:[\w-]+ )?licen[cs]e\b|creative commons|\bCC[ -]BY\b|public domain|©|\(c\)|courtesy of|photo(?:graph)? by/i;
+/**
+ * Wording that would claim a licence, or name an author the source does not:
+ * CBS Sports credits the photograph to USATSI alone, so no credit here may
+ * name a photographer (a "photo by" line, a "Name-USA TODAY Sports" byline).
+ */
+const CLAIMS = /\blicen[cs]ed\b|\bunder (?:the |a |an )?(?:[\w-]+ )?licen[cs]e\b|creative commons|\bCC[ -]BY\b|public domain|©|\(c\)|courtesy of|photo(?:graph)? by|\bphotographer\b|[-–/] ?USA TODAY Sports/i;
+
+/** The credit's own words for whose photograph it is, and how it came to be used. */
+const RIGHTS_HOLDER = /USA TODAY Sports Images \(USATSI\) photograph, as published by CBS Sports/;
 
 /** The gallery's markup. */
 const gallery = /<div class="cvd-gallery"[\s\S]*?\n {8}<\/div>/.exec(indexHtml)?.[0] ?? "";
@@ -207,7 +223,7 @@ describe("the photograph (public/colorblind/football.webp)", () => {
     assert.equal(createHash("sha256").update(bytes).digest("hex"), PHOTO_SHA256);
   });
 
-  test("carries no embedded metadata (no EXIF or XMP), so nothing in it names a source either", () => {
+  test("carries no embedded metadata (no EXIF or XMP): its source is the CBS Sports article, not the file", () => {
     // The README says so; if a replacement carries a byline or a rights link,
     // that is the credit to give.
     const chunks = webpChunks(bytes);
@@ -230,15 +246,20 @@ describe("the photograph (public/colorblind/football.webp)", () => {
     assert.match(caption, /many red–green colour-blind viewers could not tell apart/);
   });
 
-  test("has a visible credit under it: what it shows, who holds the rights (not identified), and fair use", () => {
+  test("has a visible credit under it: what it shows, whose it is (USATSI, via CBS Sports), and fair use", () => {
     const small = /<small class="cvd-credit"[^>]*>([\s\S]*?)<\/small>/.exec(photoFigure);
     assert.ok(small, "no <small class=\"cvd-credit\"> in the photograph's figure");
     assert.match(photoFigure, /<figcaption>[\s\S]*<small class="cvd-credit"[\s\S]*<\/figcaption>/, "the credit belongs in the figure's caption");
     const credit = words(small[1]);
     assert.match(credit, /^Photo: the New York Jets \(green\) and the Buffalo Bills \(red\), 12 November 2015\. /);
-    assert.match(credit, /The photographer and rights holder are not identified\./);
-    assert.match(credit, /for education and commentary about colour-vision accessibility, as fair use \(17 U\.S\.C\. § 107\)/);
+    assert.match(credit, RIGHTS_HOLDER);
+    // It links to the article, named by its headline.
+    const link = /<a\s+href="([^"]*)"[^>]*>([\s\S]*?)<\/a\s*>/.exec(small[1]);
+    assert.equal(link?.[1], SOURCE.url);
+    assert.equal(words(link[2]), `“${SOURCE.headline}”`);
+    assert.match(credit, /for education and commentary about colour-vision accessibility, as fair use \(17 U\.S\.C\. § 107\); no licence is claimed\.$/);
     assert.match(small[1], /<a href="https:\/\/www\.copyright\.gov\/title17\/92chap1\.html#107"/);
+    assert.doesNotMatch(credit, /not identified/, "the source names the rights holder now");
     assert.doesNotMatch(credit, CLAIMS);
   });
 
@@ -246,18 +267,52 @@ describe("the photograph (public/colorblind/football.webp)", () => {
     const pageCredits = /<section id="credits"[\s\S]*?<\/section>/.exec(indexHtml)?.[0] ?? "";
     const pageItem = words([...pageCredits.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]).find((li) => li.includes("Color Rush")) ?? "");
     const readmeCredits = /## Credits & sources\n([\s\S]*?)\n## /.exec(readme)?.[1] ?? "";
-    const readmeItem = readmeCredits.split(/\n(?=- )/).find((item) => item.includes(PHOTO))?.replace(/\s+/g, " ") ?? "";
+    const readmeItem = readmeCredits.split("\n### References")[0].split(/\n(?=- )/).find((item) => item.includes(PHOTO))?.replace(/\s+/g, " ") ?? "";
     for (const [name, text] of [["index.html credits", pageItem], ["README credits", readmeItem]]) {
       assert.match(text, /New York Jets \(green\) and the Buffalo Bills \(red\)/, name);
       assert.match(text, /12 November 2015/, name);
-      assert.match(text, /photographer and rights holder are not identified/i, name);
+      assert.match(text, RIGHTS_HOLDER, name);
+      assert.match(text, /in the article listed under \[?References\b/, name);
       assert.match(text, /education and commentary about colour-vision accessibility, as fair use/, name);
       assert.match(text, /17 U\.S\.C\. § 107/, name);
+      assert.match(text, /no licence is claimed/i, name);
+      assert.doesNotMatch(text, /not identified/, name);
       assert.doesNotMatch(text, CLAIMS, name);
     }
     // The repository's MIT licence is the project's to give; the photo is not.
     assert.match(readmeItem, /the repository’s MIT licence does not cover it/);
-    assert.match(/## License\n([\s\S]*?)(?:\n## |$)/.exec(readme)?.[1].replace(/\s+/g, " ") ?? "", /except the colour-vision photograph/);
+    const licence = /## License\n([\s\S]*?)(?:\n## |$)/.exec(readme)?.[1].replace(/\s+/g, " ") ?? "";
+    assert.match(licence, /except the colour-vision photograph, a USA TODAY Sports Images \(USATSI\) photograph shown as fair use/);
+    assert.match(licence, /no licence is claimed for it/);
+    assert.doesNotMatch(licence, CLAIMS);
+  });
+});
+
+describe("the References at the end of the page", () => {
+  /** "“Headline”, CBS Sports, John Breech, 12 November 2015." with the headline linking to the article. */
+  const CITATION = new RegExp(
+    `^“${SOURCE.headline}”, CBS Sports, John Breech, 12 November 2015\\. `,
+  );
+
+  test("close the page: a References list is the last thing in the credits, the last section of <main>", () => {
+    const end = /<h3 class="credits-subheading">References<\/h3>\s*<ul class="credits">([\s\S]*?)<\/ul>\s*<\/section>\s*<\/main>/.exec(indexHtml);
+    assert.ok(end, "no References list closing the credits section at the end of <main>");
+    const items = [...end[1].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
+    const cbs = items.find((item) => item.includes(SOURCE.url));
+    assert.ok(cbs, "the CBS Sports article is not in the References");
+    assert.match(cbs, SOURCE_HREF);
+    const link = /<a\b[^>]*>([\s\S]*?)<\/a\s*>/.exec(cbs);
+    assert.equal(words(link[1]), `“${SOURCE.headline}”`, "the headline is the link text");
+    assert.match(words(cbs), CITATION);
+    assert.match(words(cbs), /The source of the colour-vision photograph\.$/);
+  });
+
+  test("the README lists the same reference under its credits", () => {
+    const references = /\n### References\n([\s\S]*?)\n## /.exec(readme)?.[1] ?? "";
+    const item = references.split(/\n(?=- )/).find((entry) => entry.includes(SOURCE.url))?.replace(/\s+/g, " ") ?? "";
+    assert.ok(item, "the CBS Sports article is not in the README's References");
+    assert.ok(readme.indexOf("\n### References\n") > readme.indexOf("## Credits & sources\n"), "References belong under Credits & sources");
+    assert.ok(item.startsWith(`- [“${SOURCE.headline}”](${SOURCE.url}), CBS Sports, John Breech, 12 November 2015.`), item);
   });
 });
 

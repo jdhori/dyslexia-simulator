@@ -10,10 +10,11 @@
 // project owns them outright and they carry the repository's own licence
 // (MIT).
 //
-// The third image is not drawn: it is a photograph of the 2015 Jets vs Bills
-// "Color Rush" game (public/colorblind/football.webp), shown as fair use for
-// education and commentary about colour-vision accessibility. The README's
-// credits say what is known about it.
+// The third image is not drawn: it is a USA TODAY Sports Images (USATSI)
+// photograph of the 2015 Jets vs Bills "Color Rush" game
+// (public/colorblind/football.webp), as published by CBS Sports, shown as fair
+// use for education and commentary about colour-vision accessibility. The
+// README's credits and the page's References name the source.
 //
 // The output is deterministic (a seeded random number generator, fixed
 // rounding), so test/colour-vision.test.mjs can check that the committed

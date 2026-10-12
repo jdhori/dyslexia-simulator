@@ -115,15 +115,18 @@ that the colours do what the captions say:
 - **Charts.** Three series in red, green and brown, with a colour-only key:
   red and green merge under deuteranopia, red and brown under protanopia.
 
-The photograph (`public/colorblind/football.webp`) is not the project's own.
-It shows the New York Jets and the Buffalo Bills in the NFL's "Color Rush"
-uniforms on 12 November 2015, all green against all red, which many red–green
-colour-blind viewers could not tell apart; the next day the league said its
-testing had not allowed for colour blindness, and that future testing would.
-It is shown for education and commentary about that, as fair use, with a
-visible credit under it; see [Credits & sources](#credits--sources). The test
-pins the file by its sha256, so a different photo cannot take its place under
-the same credit, and checks the alt text, the caption and the credit.
+The photograph (`public/colorblind/football.webp`) is not the project's own:
+it is a USA TODAY Sports Images (USATSI) photograph, as published by CBS
+Sports. It shows the New York Jets and the Buffalo Bills in the NFL's "Color
+Rush" uniforms on 12 November 2015, all green against all red, which many
+red–green colour-blind viewers could not tell apart; the next day the league
+said its testing had not allowed for colour blindness, and that future testing
+would. It is shown for education and commentary about that, as fair use, with
+a visible credit under it, and the CBS Sports article is listed under
+References at the end of the page; see [Credits & sources](#credits--sources).
+The test pins the file by its sha256, so a different photo cannot take its
+place under the same credit, and checks the alt text, the caption, the credit
+and the reference.
 
 ## Accessibility
 
@@ -321,20 +324,28 @@ public/
   were never recorded.)
 - The colour-vision photograph (`public/colorblind/football.webp`) shows the
   New York Jets (green) and the Buffalo Bills (red) in the NFL’s “Color Rush”
-  uniforms on 12 November 2015. Its photographer and rights holder are not
-  identified, and the file carries no metadata naming either. It is shown for
-  education and commentary about colour-vision accessibility, as fair use
+  uniforms on 12 November 2015. It is a USA TODAY Sports Images (USATSI)
+  photograph, as published by CBS Sports in the article listed under
+  [References](#references); the file itself carries no metadata. It is shown
+  for education and commentary about colour-vision accessibility, as fair use
   ([17 U.S.C. § 107](https://www.copyright.gov/title17/92chap1.html#107)),
-  with that credit under it on the page. No one has granted a licence for it,
-  and the repository’s MIT licence does not cover it. The league’s statement
-  the next day, that its testing had not allowed for colour blindness and
-  would in future, was reported by
+  with that credit under it on the page. No licence is claimed: no one has
+  granted one, and the repository’s MIT licence does not cover it. The
+  league’s statement the next day, that its testing had not allowed for colour
+  blindness and would in future, was reported by
   [CBS Sports](https://www.cbssports.com/nfl/news/nfl-we-didnt-account-for-color-blindness-with-color-rush-jerseys),
   among others.
 
+### References
+
+- [“LOOK: Bills-Jets game is complete torture for color-blind people”](https://www.cbssports.com/nfl/news/look-bills-jets-game-is-complete-torture-for-color-blind-people/),
+  CBS Sports, John Breech, 12 November 2015. The source of the colour-vision
+  photograph; the page lists it under References at the end.
+
 ## License
 
-[MIT](LICENSE), except the colour-vision photograph, which is not the
-project’s to license (see [Credits & sources](#credits--sources)). The
-original demo carries no explicit license; this fork credits Victor Widell as
-the originator of the core idea.
+[MIT](LICENSE), except the colour-vision photograph, a USA TODAY Sports Images
+(USATSI) photograph shown as fair use: it is not the project’s to license,
+and no licence is claimed for it (see [Credits & sources](#credits--sources)).
+The original demo carries no explicit license; this fork credits Victor
+Widell as the originator of the core idea.

@@ -1035,6 +1035,13 @@ main.wrap {
 .credits li {
   margin-bottom: 0.6rem;
 }
+/* "References", the last list on the page, under the credits. */
+.credits-subheading {
+  margin: 1.75rem 0 0.4rem;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
 
 /* --- footer --- */
 
