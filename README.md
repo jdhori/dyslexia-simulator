@@ -86,7 +86,8 @@ can scroll it.
 ## Colour vision
 
 Three sample images — Ishihara-style test plates, charts that rely on colour
-alone, and two football teams in red and green — can be re-rendered as someone
+alone, and a photograph of the 2015 NFL game in which the Jets wore all green
+and the Bills all red — can be re-rendered as someone
 with protanopia, deuteranopia, tritanopia or achromatopsia is estimated to see
 them. The filters are SVG `feColorMatrix` matrices
 (`src/engine/colorVisionMatrices.ts`): the protanopia, deuteranopia and
@@ -98,12 +99,12 @@ explains the condition, and a status line always says which view is on
 screen. The **Simulation on** switch and the reveal control suspend the
 filters too.
 
-The images are drawn for this project by `scripts/draw-colorblind-images.mjs`
-(`node scripts/draw-colorblind-images.mjs` rewrites `public/colorblind/`),
-from made-up numbers, so they carry the repository's own licence.
-`test/colour-vision.test.mjs` checks that the committed files are what the
-script draws, and, with the page's own matrices, that the colours do what the
-captions say:
+The plates and the charts are drawn for this project by
+`scripts/draw-colorblind-images.mjs` (`node scripts/draw-colorblind-images.mjs`
+rewrites them in `public/colorblind/`), from made-up numbers, so they carry
+the repository's own licence. `test/colour-vision.test.mjs` checks that the
+committed files are what the script draws, and, with the page's own matrices,
+that the colours do what the captions say:
 
 - **Plates.** The first, dark dots on light, stays under every view. Four hide
   their number in orange and green chosen so that each figure colour has a
@@ -113,8 +114,16 @@ captions say:
   which vanishes under tritanopia instead (and achromatopsia).
 - **Charts.** Three series in red, green and brown, with a colour-only key:
   red and green merge under deuteranopia, red and brown under protanopia.
-- **Teams.** Three players a side in one colour from helmet to socks; the two
-  kits turn the same khaki under deuteranopia.
+
+The photograph (`public/colorblind/football.webp`) is not the project's own.
+It shows the New York Jets and the Buffalo Bills in the NFL's "Color Rush"
+uniforms on 12 November 2015, all green against all red, which many red–green
+colour-blind viewers could not tell apart; the next day the league said its
+testing had not allowed for colour blindness, and that future testing would.
+It is shown for education and commentary about that, as fair use, with a
+visible credit under it; see [Credits & sources](#credits--sources). The test
+pins the file by its sha256, so a different photo cannot take its place under
+the same credit, and checks the alt text, the caption and the credit.
 
 ## Accessibility
 
@@ -271,11 +280,11 @@ src/
     announce.ts           # screen-reader live region
 scripts/
   vendor-mathjax.mjs      # copies MathJax into public/vendor/ (predev, prebuild)
-  draw-colorblind-images.mjs # draws the three colour-vision sample images
+  draw-colorblind-images.mjs # draws two of the colour-vision sample images
 licenses/                 # the maths fonts' licence texts, copied into vendor/
 test/                     # node --test unit tests
 public/
-  colorblind/             # the three colour-vision sample images (drawn, SVG)
+  colorblind/             # the colour-vision sample images: two drawings (SVG) and a photograph (WebP)
 ```
 
 ## Credits & sources
@@ -305,13 +314,27 @@ public/
     which builds on the LaTeX Project Public License 1.3c
     (`vendor/mathjax-newcm-font/GUST-FONT-LICENSE.txt` and `LPPL-1.3c.txt`).
     The package's scripts are Apache License 2.0, as its `package.json` says.
-- The three colour-vision sample images in `public/colorblind/` are drawn for
-  this project by `scripts/draw-colorblind-images.mjs` and are under its MIT
-  licence. (They replace three earlier images whose source and licence were
-  never recorded: Ishihara-style plates, a chart figure and a professional
-  photograph of an NFL game.)
+- The colour-vision test plates and charts (`public/colorblind/plates.svg` and
+  `charts.svg`) are drawn for this project by
+  `scripts/draw-colorblind-images.mjs` and are under its MIT licence. (They
+  replace an earlier plate image and chart figure whose source and licence
+  were never recorded.)
+- The colour-vision photograph (`public/colorblind/football.webp`) shows the
+  New York Jets (green) and the Buffalo Bills (red) in the NFL’s “Color Rush”
+  uniforms on 12 November 2015. Its photographer and rights holder are not
+  identified, and the file carries no metadata naming either. It is shown for
+  education and commentary about colour-vision accessibility, as fair use
+  ([17 U.S.C. § 107](https://www.copyright.gov/title17/92chap1.html#107)),
+  with that credit under it on the page. No one has granted a licence for it,
+  and the repository’s MIT licence does not cover it. The league’s statement
+  the next day, that its testing had not allowed for colour blindness and
+  would in future, was reported by
+  [CBS Sports](https://www.cbssports.com/nfl/news/nfl-we-didnt-account-for-color-blindness-with-color-rush-jerseys),
+  among others.
 
 ## License
 
-[MIT](LICENSE). The original demo carries no explicit license; this fork credits
-Victor Widell as the originator of the core idea.
+[MIT](LICENSE), except the colour-vision photograph, which is not the
+project’s to license (see [Credits & sources](#credits--sources)). The
+original demo carries no explicit license; this fork credits Victor Widell as
+the originator of the core idea.

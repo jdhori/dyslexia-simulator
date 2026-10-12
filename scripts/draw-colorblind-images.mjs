@@ -1,14 +1,19 @@
 #!/usr/bin/env node
-// Draw the colour-vision section's three sample images, as SVG, from this
-// file alone:
+// Draw two of the colour-vision section's three sample images, the test
+// plates and the charts, as SVG, from this file alone:
 //
 //   node scripts/draw-colorblind-images.mjs   # writes public/colorblind/*.svg
 //
-// WHY: the section used to show three images nobody had recorded a source or
-// licence for (an agency's NFL photograph among them), so they could not be
-// credited or shipped. These are drawn here instead, from made-up numbers and
-// colours picked for the demo, so the project owns them outright and they
-// carry the repository's own licence (MIT).
+// WHY: the section used to show plates and a chart figure nobody had recorded
+// a source or licence for, so they could not be credited. These are drawn
+// here instead, from made-up numbers and colours picked for the demo, so the
+// project owns them outright and they carry the repository's own licence
+// (MIT).
+//
+// The third image is not drawn: it is a photograph of the 2015 Jets vs Bills
+// "Color Rush" game (public/colorblind/football.webp), shown as fair use for
+// education and commentary about colour-vision accessibility. The README's
+// credits say what is known about it.
 //
 // The output is deterministic (a seeded random number generator, fixed
 // rounding), so test/colour-vision.test.mjs can check that the committed
@@ -263,63 +268,6 @@ export function drawCharts() {
 }
 
 // ---------------------------------------------------------------------------
-// Red against green
-// ---------------------------------------------------------------------------
-
-/**
- * Two teams in one colour from helmet to socks. Under deuteranopia (and
- * achromatopsia) the two kits turn the same khaki; under protanopia only a
- * difference in lightness is left.
- */
-export const TEAMS = Object.freeze([
-  { name: "red", colour: "#c8501e", numbers: ["21", "8", "44"], facing: 1, xs: [95, 207, 319] },
-  { name: "green", colour: "#5a9a1e", numbers: ["7", "33", "15"], facing: -1, xs: [481, 593, 705] },
-]);
-
-/** One player, standing, facing left (-1) or right (1), centred on x with feet at y. */
-function player(x, y, colour, number, facing) {
-  const face = facing * 14;
-  return [
-    `<g>`,
-    // Legs and boots.
-    `<rect x="${x - 26}" y="${y - 92}" width="22" height="80" rx="8" fill="${colour}"/>`,
-    `<rect x="${x + 4}" y="${y - 92}" width="22" height="80" rx="8" fill="${colour}"/>`,
-    `<rect x="${x - 30}" y="${y - 16}" width="28" height="16" rx="6" fill="#2b2b2b"/>`,
-    `<rect x="${x + 2}" y="${y - 16}" width="28" height="16" rx="6" fill="#2b2b2b"/>`,
-    // Arms.
-    `<rect x="${x - 52}" y="${y - 176}" width="17" height="74" rx="8.5" fill="${colour}"/>`,
-    `<rect x="${x + 35}" y="${y - 176}" width="17" height="74" rx="8.5" fill="${colour}"/>`,
-    // Jersey with shoulder pads, and its number.
-    `<rect x="${x - 44}" y="${y - 186}" width="88" height="104" rx="18" fill="${colour}"/>`,
-    `<text x="${x}" y="${y - 118}" text-anchor="middle" font-size="36" font-weight="700" fill="#ffffff">${number}</text>`,
-    // Helmet, with a grey face mask on the side it faces.
-    `<circle cx="${x}" cy="${y - 214}" r="30" fill="${colour}"/>`,
-    `<path d="M${x + face} ${y - 226} h${facing * 22} M${x + face} ${y - 212} h${facing * 22} M${x + face + facing * 18} ${y - 230} v26" stroke="#8c8c8c" stroke-width="5" stroke-linecap="round" fill="none"/>`,
-    `</g>`,
-  ].join("");
-}
-
-/** The red-against-green image: three players a side, facing each other over the ball. */
-export function drawTeams() {
-  const width = 800;
-  const height = 300;
-  const ground = 240;
-  const parts = [
-    `<rect x="0" y="${ground - 20}" width="${width}" height="${height - ground + 20}" fill="#e6e1d4"/>`,
-    ...[100, 250, 400, 550, 700].map((x) => `<rect x="${x - 2}" y="${ground - 20}" width="4" height="${height - ground + 20}" fill="#ffffff"/>`),
-    `<g font-family="${FONT}">`,
-  ];
-  for (const team of TEAMS) {
-    team.xs.forEach((x, i) => parts.push(player(x, ground + 30, team.colour, team.numbers[i], team.facing)));
-  }
-  parts.push("</g>");
-  // The ball, on the line between them.
-  parts.push(`<ellipse cx="400" cy="${ground + 12}" rx="30" ry="17" fill="#7a4a24"/>`);
-  parts.push(`<path d="M386 ${ground + 12} h28 M392 ${ground + 6} v12 M400 ${ground + 6} v12 M408 ${ground + 6} v12" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>`);
-  return svg(width, height, "Three players in all red face three players in all green over a football", parts);
-}
-
-// ---------------------------------------------------------------------------
 
 /** A standalone SVG document on a white background. */
 function svg(width, height, title, parts) {
@@ -337,7 +285,6 @@ function svg(width, height, title, parts) {
 export const IMAGES = Object.freeze({
   "plates.svg": drawPlates,
   "charts.svg": drawCharts,
-  "teams.svg": drawTeams,
 });
 
 // Run as a script (not when a test imports it).

@@ -940,6 +940,16 @@ main.wrap {
 .cvd-figure figcaption strong {
   color: var(--ink);
 }
+/* The photograph's credit: its own line under the caption, in the caption's
+   colour, so it keeps the caption's contrast. */
+.cvd-credit {
+  display: block;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
 @media (prefers-reduced-motion: reduce) {
   .cvd-figure img {
     transition: none;
